@@ -68,6 +68,28 @@ export function registerRoutes(app: Express) {
     res.json({ baseUrl: domain });
   });
 
+  // Development login endpoint
+  app.post("/api/auth/dev-login", async (req, res) => {
+    if (process.env.NODE_ENV !== "production") {
+      const [user] = await db.insert(users)
+        .values({
+          name: "Development User",
+          email: "dev@example.com",
+          googleId: "dev-" + Date.now(),
+        })
+        .returning();
+      
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ error: "Login failed" });
+        }
+        res.json(user);
+      });
+    } else {
+      res.status(404).json({ error: "Not found" });
+    }
+  });
+
   app.get("/api/auth/user", (req, res) => {
     if (!req.user) {
       res.status(401).json({ error: "Not authenticated" });
