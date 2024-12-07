@@ -37,14 +37,22 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/config", (req, res) => {
   // Google OAuth routes
-  app.get("/api/auth/google", passport.authenticate("google"));
+  app.get("/api/auth/google", (req, res, next) => {
+    console.log("Starting Google OAuth flow...");
+    passport.authenticate("google")(req, res, next);
+  });
 
   app.get(
     "/api/auth/google/callback",
-    passport.authenticate("google", {
-      failureRedirect: "/login?error=auth_failed",
-    }),
+    (req, res, next) => {
+      console.log("Received callback from Google OAuth");
+      passport.authenticate("google", {
+        failureRedirect: "/login?error=auth_failed",
+        failureMessage: true
+      })(req, res, next);
+    },
     (req, res) => {
+      console.log("Authentication successful, sending response to client");
       res.send(`
         <script>
           window.opener.postMessage({ type: 'oauth-success' }, '*');
@@ -54,6 +62,7 @@ export function registerRoutes(app: Express) {
     }
   );
 
+    // Use the same domain as configured in Google OAuth
     const domain = 'https://f9e0b7b6-6cc4-401c-ad46-ba99d97a103f.shanemckeown.repl.co';
     
     res.json({ baseUrl: domain });

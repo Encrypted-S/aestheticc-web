@@ -78,7 +78,7 @@ passport.use(new GoogleStrategy({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     callbackURL: 'https://f9e0b7b6-6cc4-401c-ad46-ba99d97a103f.shanemckeown.repl.co/api/auth/google/callback',
     proxy: true,
-    scope: ['profile', 'email']
+    scope: ['email', 'profile']
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
