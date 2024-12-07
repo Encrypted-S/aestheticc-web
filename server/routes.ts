@@ -108,13 +108,23 @@ export function registerRoutes(router: express.Router) {
 
   router.get(
     "/api/auth/google/callback",
-    passport.authenticate("google", {
-      failureRedirect: "/login?error=auth_failed",
-    }),
+    (req, res, next) => {
+      console.log("Received Google OAuth callback");
+      passport.authenticate("google", {
+        failureRedirect: "/login?error=auth_failed",
+        failureMessage: true
+      })(req, res, next);
+    },
     (req, res) => {
+      console.log("Google OAuth authentication successful");
+      const origin = process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.replit.app`
+        : 'http://localhost:5000';
+      
       res.send(`
         <script>
-          window.opener.postMessage({ type: 'oauth-success' }, '*');
+          window.opener.postMessage({ type: 'oauth-success' }, '${origin}');
+          window.close();
         </script>
       `);
     }

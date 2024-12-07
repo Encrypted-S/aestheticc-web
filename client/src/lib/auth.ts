@@ -67,11 +67,9 @@ export function useGoogleLogin() {
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
-      const response = await fetch("/api/config");
-      const { baseUrl } = await response.json();
       
       const popup = window.open(
-        `${baseUrl}/api/auth/google`,
+        `/api/auth/google`,
         "GoogleLogin",
         `width=${width},height=${height},left=${left},top=${top}`
       );
@@ -82,6 +80,12 @@ export function useGoogleLogin() {
 
       // Handle the OAuth callback
       const messageHandler = (event: MessageEvent) => {
+        const origin = window.location.origin;
+        if (event.origin !== origin) {
+          console.error("Received message from unexpected origin:", event.origin);
+          return;
+        }
+
         if (event.data.type === "oauth-success") {
           window.removeEventListener("message", messageHandler);
           popup?.close();
@@ -90,6 +94,14 @@ export function useGoogleLogin() {
             description: "You have been successfully logged in.",
           });
           window.location.href = "/dashboard";
+        } else if (event.data.type === "oauth-error") {
+          window.removeEventListener("message", messageHandler);
+          popup?.close();
+          toast({
+            title: "Login failed",
+            description: event.data.message || "Failed to authenticate with Google",
+            variant: "destructive",
+          });
         }
       };
 
