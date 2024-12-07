@@ -68,6 +68,17 @@ export default function ContentGenerator() {
   const onSubmit = async (data: FormData) => {
     setIsGenerating(true);
     try {
+      // Track content generation event
+      await fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: "generate",
+          platform: data.platform,
+          contentType: data.contentType,
+        }),
+      });
+
       const response = await fetch("/api/generate-content", {
         method: "POST",
         headers: {

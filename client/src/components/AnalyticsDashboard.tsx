@@ -25,11 +25,34 @@ export default function AnalyticsDashboard() {
     return <div>Loading analytics...</div>;
   }
 
+  const generateSampleData = async () => {
+    try {
+      await fetch("/api/analytics/generate-sample", {
+        method: "POST",
+        credentials: "include",
+      });
+      // Refetch analytics after generating sample data
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to generate sample data:", error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Analytics Overview</h2>
-        <Select value={timeRange} onValueChange={setTimeRange}>
+        <div className="flex items-center gap-4">
+          {import.meta.env.DEV && (
+            <Button
+              variant="outline"
+              onClick={generateSampleData}
+              className="mr-4"
+            >
+              Generate Sample Data
+            </Button>
+          )}
+          <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select time range" />
           </SelectTrigger>
@@ -39,6 +62,7 @@ export default function AnalyticsDashboard() {
             <SelectItem value="90d">Last 90 days</SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
