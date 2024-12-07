@@ -50,6 +50,30 @@ export function registerRoutes(app: Express) {
 
     res.json(post[0]);
   });
+  // Content Generation
+  app.post("/api/generate-content", async (req, res) => {
+    const { topic, platform, tone } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      // For now, generate placeholder content based on input parameters
+      const generatedContent = {
+        mainText: `${tone} content about ${topic} for ${platform}.\n\nKey points:\n- Benefits of the treatment\n- Expected results\n- Recovery time\n- Safety measures`,
+        hashtags: ["#aestheticclinic", "#beauty", `#${topic.replace(/\s+/g, '')}`, "#skincare"],
+        imagePrompt: `Professional ${platform} image for ${topic} in an aesthetic clinic setting`,
+      };
+
+      res.json(generatedContent);
+    } catch (error) {
+      console.error("Content generation error:", error);
+      res.status(500).json({ error: "Failed to generate content" });
+    }
+  });
+
 
   // Stripe Subscription
   app.post("/api/create-subscription", async (req, res) => {

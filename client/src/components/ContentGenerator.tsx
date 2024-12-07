@@ -27,12 +27,52 @@ type FormData = {
 
 export default function ContentGenerator() {
   const form = useForm<FormData>();
-  const [preview, setPreview] = useState<string>("");
+  const [preview, setPreview] = useState<React.ReactNode | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const onSubmit = (data: FormData) => {
-    // Handle content generation
-    console.log(data);
-    setPreview("Generated content preview would appear here...");
+  const onSubmit = async (data: FormData) => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch("/api/generate-content", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate content");
+      }
+
+      const result = await response.json();
+      setPreview(
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-semibold mb-2">Content:</h4>
+            <p className="whitespace-pre-wrap">{result.mainText}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Hashtags:</h4>
+            <p className="text-primary">{result.hashtags.join(" ")}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Image Prompt:</h4>
+            <p className="italic">{result.imagePrompt}</p>
+          </div>
+        </div>
+      );
+    } catch (error) {
+      console.error(error);
+      setPreview(
+        <div className="text-destructive">
+          Failed to generate content. Please try again.
+        </div>
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -97,7 +137,9 @@ export default function ContentGenerator() {
               )}
             />
 
-            <Button type="submit">Generate Content</Button>
+            <Button type="submit" disabled={isGenerating}>
+              {isGenerating ? "Generating..." : "Generate Content"}
+            </Button>
           </form>
         </Form>
       </div>
