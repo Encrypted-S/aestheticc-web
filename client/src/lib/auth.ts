@@ -62,17 +62,13 @@ export function useGoogleLogin() {
 
   const startGoogleLogin = async () => {
     try {
-      // Get the base URL from the config
-      const configResponse = await fetch("/api/config");
-      const { baseUrl } = await configResponse.json();
-
       // Google OAuth popup window settings
       const width = 500;
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
       const popup = window.open(
-        `${baseUrl}/api/auth/google`,
+        "/api/auth/google",
         "GoogleLogin",
         `width=${width},height=${height},left=${left},top=${top}`
       );
