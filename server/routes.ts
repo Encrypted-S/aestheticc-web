@@ -35,6 +35,14 @@ export function registerRoutes(app: Express) {
     });
   });
 
+  app.get("/api/config", (req, res) => {
+    res.json({
+      baseUrl: process.env.NODE_ENV === 'production'
+        ? 'https://aestheticpostpro.shanesmckeown.repl.co'
+        : 'http://localhost:5000'
+    });
+  });
+
   app.get("/api/auth/user", (req, res) => {
     if (!req.user) {
       res.status(401).json({ error: "Not authenticated" });
