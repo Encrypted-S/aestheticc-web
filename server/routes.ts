@@ -75,16 +75,28 @@ export function registerRoutes(router: express.Router) {
         .where(eq(analyticsEvents.userId, userId))
         .groupBy(analyticsEvents.contentType);
 
-      const totalImpressions = performance[0]?.totalImpressions || 0;
-      const totalEngagements = performance[0]?.totalEngagements || 0;
+      const totalImpressions = Number(performance[0]?.totalImpressions) || 0;
+      const totalEngagements = Number(performance[0]?.totalEngagements) || 0;
       const engagementRate = totalImpressions > 0 ? totalEngagements / totalImpressions : 0;
 
-      res.json({
-        totalPosts: totalPosts[0]?.count || 0,
+      // Ensure platformStats and contentTypeStats are always arrays
+      const formattedPlatformStats = platformStats || [];
+      const formattedContentTypeStats = contentTypeStats || [];
+
+      console.log('Analytics response:', {
+        totalPosts: Number(totalPosts[0]?.count) || 0,
         totalImpressions,
         engagementRate,
-        platformStats,
-        contentTypeStats,
+        platformStats: formattedPlatformStats,
+        contentTypeStats: formattedContentTypeStats,
+      });
+
+      res.json({
+        totalPosts: Number(totalPosts[0]?.count) || 0,
+        totalImpressions,
+        engagementRate,
+        platformStats: formattedPlatformStats,
+        contentTypeStats: formattedContentTypeStats,
       });
     } catch (error) {
       console.error("Analytics error:", error);

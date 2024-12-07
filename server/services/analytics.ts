@@ -68,7 +68,7 @@ export async function generateSampleAnalytics(userId: number) {
       const [post] = await db.insert(scheduledPosts)
         .values({
           userId,
-          content: `Sample post ${i + 1}`,
+          content: { text: `Sample post ${i + 1}`, hashtags: [], imageUrl: null },
           platforms: platforms.slice(0, Math.floor(Math.random() * 3) + 1),
           scheduledFor: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000),
           published: Math.random() > 0.5,
