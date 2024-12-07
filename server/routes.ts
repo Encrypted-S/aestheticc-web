@@ -117,8 +117,8 @@ export function registerRoutes(router: express.Router) {
     },
     (req, res) => {
       console.log("Google OAuth authentication successful");
-      const origin = process.env.REPL_SLUG 
-        ? `https://${process.env.REPL_SLUG}.replit.app`
+      const origin = process.env.NODE_ENV === 'production'
+        ? 'https://aestheticc-web.replit.app'
         : 'http://localhost:5000';
       
       res.send(`
