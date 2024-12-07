@@ -76,7 +76,9 @@ passport.deserializeUser(async (id: number, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: '/api/auth/google/callback',
+    callbackURL: process.env.NODE_ENV === 'production' 
+      ? 'https://aestheticpostpro.shanesmckeown.repl.co/api/auth/google/callback'
+      : 'http://localhost:5000/api/auth/google/callback',
     proxy: true,
     scope: ['profile', 'email']
   },
