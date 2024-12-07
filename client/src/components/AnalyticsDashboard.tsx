@@ -28,11 +28,18 @@ export default function AnalyticsDashboard() {
 
   const generateSampleData = async () => {
     try {
-      await fetch("/api/analytics/generate-sample", {
+      console.log("Sending request to generate sample data");
+      const response = await fetch("/api/analytics/generate-sample", {
         method: "POST",
         credentials: "include",
       });
-      // Refetch analytics instead of page reload
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to generate sample data");
+      }
+      
+      console.log("Sample data generated successfully");
       await refetch();
     } catch (error) {
       console.error("Failed to generate sample data:", error);

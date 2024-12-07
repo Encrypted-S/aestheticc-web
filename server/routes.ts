@@ -224,17 +224,21 @@ export function registerRoutes(router: express.Router) {
   // Development routes for generating sample data
   if (process.env.NODE_ENV === "development") {
     router.post("/api/analytics/generate-sample", async (req, res) => {
+      console.log("Received request to generate sample data");
       const userId = req.user?.id;
       if (!userId) {
+        console.log("No user ID found in request");
         return res.status(401).json({ error: "Unauthorized" });
       }
 
       try {
+        console.log("Starting sample data generation for user:", userId);
         await generateSampleAnalytics(userId);
+        console.log("Successfully generated sample data");
         res.json({ success: true });
       } catch (error) {
         console.error("Sample data generation error:", error);
-        res.status(500).json({ error: "Failed to generate sample data" });
+        res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate sample data" });
       }
     });
   }
