@@ -54,9 +54,7 @@ export function registerRoutes(app: Express) {
     }
   );
 
-    const domain = process.env.REPL_SLUG && process.env.REPL_OWNER
-      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-      : 'http://localhost:5000';
+    const domain = 'https://f9e0b7b6-6cc4-401c-ad46-ba99d97a103f.shanemckeown.repl.co';
     
     res.json({ baseUrl: domain });
   });
