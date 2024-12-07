@@ -36,9 +36,11 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/config", (req, res) => {
-    res.json({
-      baseUrl: 'https://aestheticpostpro.shanesmckeown.repl.co'
-    });
+    const domain = process.env.REPL_SLUG && process.env.REPL_OWNER
+      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      : 'http://localhost:5000';
+    
+    res.json({ baseUrl: domain });
   });
 
   app.get("/api/auth/user", (req, res) => {
