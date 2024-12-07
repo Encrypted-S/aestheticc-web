@@ -36,6 +36,24 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/config", (req, res) => {
+  // Google OAuth routes
+  app.get("/api/auth/google", passport.authenticate("google"));
+
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", {
+      failureRedirect: "/login?error=auth_failed",
+    }),
+    (req, res) => {
+      res.send(`
+        <script>
+          window.opener.postMessage({ type: 'oauth-success' }, '*');
+          window.close();
+        </script>
+      `);
+    }
+  );
+
     const domain = process.env.REPL_SLUG && process.env.REPL_OWNER
       ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
       : 'http://localhost:5000';
