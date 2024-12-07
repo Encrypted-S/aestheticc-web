@@ -13,7 +13,7 @@ import {
 export default function AnalyticsDashboard() {
   const [timeRange, setTimeRange] = useState<string>("7d");
 
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading, refetch } = useQuery({
     queryKey: ["analytics", timeRange],
     queryFn: async () => {
       const response = await fetch(`/api/analytics?timeRange=${timeRange}`);
@@ -25,15 +25,6 @@ export default function AnalyticsDashboard() {
   if (isLoading) {
     return <div>Loading analytics...</div>;
   }
-
-  const { refetch } = useQuery({
-    queryKey: ["analytics", timeRange],
-    queryFn: async () => {
-      const response = await fetch(`/api/analytics?timeRange=${timeRange}`);
-      if (!response.ok) throw new Error("Failed to fetch analytics");
-      return response.json();
-    },
-  });
 
   const generateSampleData = async () => {
     try {

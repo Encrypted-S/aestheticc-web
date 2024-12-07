@@ -30,7 +30,7 @@ export async function updateContentPerformance(postId: number, platform: string,
         clicks: (existing.clicks || 0) + (metrics.clicks || 0),
         updatedAt: new Date(),
       })
-      .where(({ eq }) => eq(contentPerformance.id, existing.id));
+      .where(eq(contentPerformance.id, existing.id));
   } else {
     await db.insert(contentPerformance).values({
       postId,
