@@ -59,11 +59,8 @@ export function useLogout() {
 
 export function useGoogleLogin() {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
   const startGoogleLogin = () => {
-    setIsLoading(true);
-    
     try {
       // Google OAuth popup window settings
       const width = 500;
@@ -80,21 +77,11 @@ export function useGoogleLogin() {
         throw new Error("Popup blocked");
       }
 
-      // Check if popup was closed
-      const popupChecker = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(popupChecker);
-          setIsLoading(false);
-        }
-      }, 1000);
-
       // Handle the OAuth callback
       const messageHandler = (event: MessageEvent) => {
         if (event.data.type === "oauth-success") {
           window.removeEventListener("message", messageHandler);
-          clearInterval(popupChecker);
           popup?.close();
-          setIsLoading(false);
           toast({
             title: "Welcome!",
             description: "You have been successfully logged in.",
@@ -105,7 +92,6 @@ export function useGoogleLogin() {
 
       window.addEventListener("message", messageHandler);
     } catch (error) {
-      setIsLoading(false);
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Failed to start login process",
@@ -114,5 +100,5 @@ export function useGoogleLogin() {
     }
   };
 
-  return { startGoogleLogin, isLoading };
+  return { startGoogleLogin };
 }
