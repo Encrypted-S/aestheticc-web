@@ -88,14 +88,9 @@ export function registerRoutes(app: Express) {
     }
 
     try {
-      // For now, generate placeholder content based on input parameters
-      const generatedContent = {
-        mainText: `${tone} content about ${topic} for ${platform}.\n\nKey points:\n- Benefits of the treatment\n- Expected results\n- Recovery time\n- Safety measures`,
-        hashtags: ["#aestheticclinic", "#beauty", `#${topic.replace(/\s+/g, '')}`, "#skincare"],
-        imagePrompt: `Professional ${platform} image for ${topic} in an aesthetic clinic setting`,
-      };
-
-      res.json(generatedContent);
+      const { generateContent } = await import("./services/openai");
+      const content = await generateContent({ topic, platform, tone });
+      res.json(content);
     } catch (error) {
       console.error("Content generation error:", error);
       res.status(500).json({ error: "Failed to generate content" });
