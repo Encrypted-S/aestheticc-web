@@ -9,6 +9,7 @@ import {
   analyticsEvents,
   contentPerformance,
 } from "@db/schema";
+import { trackAnalyticsEvent, generateSampleAnalytics } from "./services/analytics";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 

@@ -26,14 +26,23 @@ export default function AnalyticsDashboard() {
     return <div>Loading analytics...</div>;
   }
 
+  const { refetch } = useQuery({
+    queryKey: ["analytics", timeRange],
+    queryFn: async () => {
+      const response = await fetch(`/api/analytics?timeRange=${timeRange}`);
+      if (!response.ok) throw new Error("Failed to fetch analytics");
+      return response.json();
+    },
+  });
+
   const generateSampleData = async () => {
     try {
       await fetch("/api/analytics/generate-sample", {
         method: "POST",
         credentials: "include",
       });
-      // Refetch analytics after generating sample data
-      window.location.reload();
+      // Refetch analytics instead of page reload
+      await refetch();
     } catch (error) {
       console.error("Failed to generate sample data:", error);
     }
