@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContentGenerator from "../components/ContentGenerator";
 import TemplateLibrary from "../components/TemplateLibrary";
 import ContentCalendar from "../components/ContentCalendar";
+import AnalyticsDashboard from "../components/AnalyticsDashboard";
 
 import { useLocation } from "wouter";
 import { useRequireAuth } from "../lib/auth";
@@ -29,6 +30,7 @@ export default function Dashboard() {
           <TabsTrigger value="generate">Generate Content</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="generate">
@@ -41,6 +43,10 @@ export default function Dashboard() {
 
         <TabsContent value="calendar">
           <ContentCalendar />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AnalyticsDashboard />
         </TabsContent>
       </Tabs>
     </div>

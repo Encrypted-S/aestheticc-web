@@ -1,133 +1,33 @@
-import type { Express, Request } from "express";
-import "./types";
+import express from "express";
 import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { sql } from "drizzle-orm";
 import { db } from "../db";
-import { users, scheduledPosts } from "@db/schema";
+import {
+  users,
+  scheduledPosts,
+  templates,
+  analyticsEvents,
+  contentPerformance,
+} from "@db/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia" as const,
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2023-10-16",
 });
 
-export function registerRoutes(app: Express) {
+export function registerRoutes(router: express.Router) {
   // Auth routes
-  app.get("/api/auth/google",
-    passport.authenticate("google", { scope: ["profile", "email"] })
-  );
-
-  app.get("/api/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/login?error=auth_failed" }),
-    (req, res) => {
-      res.send(`
-        <script>
-          window.opener.postMessage({ type: 'oauth-success', user: ${JSON.stringify(req.user)} }, '*');
-          window.close();
-        </script>
-      `);
-    }
-  );
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.json({ success: true });
-    });
-  });
-
-  app.get("/api/config", (req, res) => {
-  // Google OAuth routes
-  app.get("/api/auth/google", (req, res, next) => {
-    console.log("Starting Google OAuth flow...");
-    passport.authenticate("google")(req, res, next);
-  });
-
-  app.get(
-    "/api/auth/google/callback",
-    (req, res, next) => {
-      console.log("Received callback from Google OAuth");
-      passport.authenticate("google", {
-        failureRedirect: "/login?error=auth_failed",
-        failureMessage: true
-      })(req, res, next);
-    },
-    (req, res) => {
-      console.log("Authentication successful, sending response to client");
-      res.send(`
-        <script>
-          window.opener.postMessage({ type: 'oauth-success' }, '*');
-          window.close();
-        </script>
-      `);
-    }
-  );
-
-    // Use the same domain as configured in Google OAuth
-    const domain = 'https://f9e0b7b6-6cc4-401c-ad46-ba99d97a103f.shanemckeown.repl.co';
-    
-    res.json({ baseUrl: domain });
-  });
-
-  // Development login endpoint
-  app.post("/api/auth/dev-login", async (req, res) => {
-    if (process.env.NODE_ENV !== "production") {
-      const [user] = await db.insert(users)
-        .values({
-          name: "Development User",
-          email: "dev@example.com",
-          googleId: "dev-" + Date.now(),
-        })
-        .returning();
-      
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ error: "Login failed" });
-        }
-        res.json(user);
-      });
-    } else {
-      res.status(404).json({ error: "Not found" });
-    }
-  });
-
-  app.get("/api/auth/user", (req, res) => {
+  router.get("/api/auth/user", (req, res) => {
     if (!req.user) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
+      return res.status(401).json({ error: "Not authenticated" });
     }
     res.json(req.user);
   });
 
-  // Templates
-  app.get("/api/templates", async (req, res) => {
-    const allTemplates = await db.query.templates.findMany();
-    res.json(allTemplates);
-  });
-
-  // Scheduled Posts
-  app.post("/api/posts/schedule", async (req, res) => {
-    const { content, platforms, scheduledFor } = req.body;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const post = await db
-      .insert(scheduledPosts)
-      .values({
-        userId,
-        content,
-        platforms,
-        scheduledFor: new Date(scheduledFor),
-      })
-      .returning();
-
-    res.json(post[0]);
-  });
-  // Content Generation
-  app.post("/api/generate-content", async (req, res) => {
-    const { topic, platform, tone } = req.body;
+  // Analytics routes
+  router.get("/api/analytics", async (req, res) => {
+    const { timeRange = "7d" } = req.query;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -135,53 +35,238 @@ export function registerRoutes(app: Express) {
     }
 
     try {
-      const { generateContent } = await import("./services/openai");
-      const content = await generateContent({ topic, platform, tone });
-      res.json(content);
+      // Get total posts
+      const totalPosts = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(scheduledPosts)
+        .where(eq(scheduledPosts.userId, userId));
+
+      // Get performance metrics
+      const performance = await db
+        .select({
+          totalImpressions: sql<number>`sum(${contentPerformance.impressions})`,
+          totalEngagements: sql<number>`sum(${contentPerformance.engagements})`,
+        })
+        .from(contentPerformance)
+        .innerJoin(scheduledPosts, eq(contentPerformance.postId, scheduledPosts.id))
+        .where(eq(scheduledPosts.userId, userId));
+
+      // Get platform stats
+      const platformStats = await db
+        .select({
+          platform: contentPerformance.platform,
+          posts: sql<number>`count(distinct ${scheduledPosts.id})`,
+          impressions: sql<number>`sum(${contentPerformance.impressions})`,
+        })
+        .from(contentPerformance)
+        .innerJoin(scheduledPosts, eq(contentPerformance.postId, scheduledPosts.id))
+        .where(eq(scheduledPosts.userId, userId))
+        .groupBy(contentPerformance.platform);
+
+      // Get content type performance
+      const contentTypeStats = await db
+        .select({
+          type: analyticsEvents.contentType,
+          posts: sql<number>`count(*)`,
+          engagements: sql<number>`sum(case when ${analyticsEvents.eventType} = 'engagement' then 1 else 0 end)`,
+        })
+        .from(analyticsEvents)
+        .where(eq(analyticsEvents.userId, userId))
+        .groupBy(analyticsEvents.contentType);
+
+      const totalImpressions = performance[0]?.totalImpressions || 0;
+      const totalEngagements = performance[0]?.totalEngagements || 0;
+      const engagementRate = totalImpressions > 0 ? totalEngagements / totalImpressions : 0;
+
+      res.json({
+        totalPosts: totalPosts[0]?.count || 0,
+        totalImpressions,
+        engagementRate,
+        platformStats,
+        contentTypeStats,
+      });
     } catch (error) {
-      console.error("Content generation error:", error);
-      res.status(500).json({ error: "Failed to generate content" });
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
 
+  router.get("/api/auth/google", passport.authenticate("google"));
 
-  // Stripe Subscription
-  app.post("/api/create-subscription", async (req, res) => {
+  router.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", {
+      failureRedirect: "/login?error=auth_failed",
+    }),
+    (req, res) => {
+      res.send(`
+        <script>
+          window.opener.postMessage({ type: 'oauth-success' }, '*');
+        </script>
+      `);
+    }
+  );
+
+  router.post("/api/auth/logout", (req, res) => {
+    req.logout(() => {
+      res.sendStatus(200);
+    });
+  });
+
+  // Development-only routes
+  if (process.env.NODE_ENV === "development") {
+    router.post("/api/auth/dev-login", async (req, res) => {
+      try {
+        const [user] = await db
+          .insert(users)
+          .values({
+            name: "Dev User",
+            email: "dev@example.com",
+          })
+          .onConflictDoUpdate({
+            target: users.email,
+            set: {
+              name: "Dev User",
+            },
+          })
+          .returning();
+
+        req.login(user, (err) => {
+          if (err) {
+            return res.status(500).json({ error: "Login failed" });
+          }
+          res.json(user);
+        });
+      } catch (error) {
+        console.error("Dev login error:", error);
+        res.status(500).json({ error: "Login failed" });
+      }
+    });
+  }
+
+  // Templates routes
+  router.get("/api/templates", async (req, res) => {
+    try {
+      const allTemplates = await db.query.templates.findMany();
+      res.json(allTemplates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  // Posts routes
+  router.get("/api/posts/scheduled", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const posts = await db.query.scheduledPosts.findMany({
+        where: eq(scheduledPosts.userId, req.user.id),
+      });
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch scheduled posts" });
+    }
+  });
+
+  // Subscription routes
+  router.post("/api/create-subscription", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        customer_email: req.user.email,
+        line_items: [
+          {
+            price: "price_H5ggYwtDq4fbrJ",
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: `${process.env.FRONTEND_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL}/dashboard`,
+      });
+
+      res.json({ sessionId: session.id });
+    } catch (error) {
+      console.error("Subscription error:", error);
+      res.status(500).json({ error: "Failed to create subscription" });
+    }
+  });
+
+  // Analytics routes
+  router.get("/api/analytics", async (req, res) => {
+    const { timeRange = "7d" } = req.query;
     const userId = req.user?.id;
+
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
+    try {
+      // Get total posts
+      const totalPosts = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(scheduledPosts)
+        .where(eq(scheduledPosts.userId, userId));
 
-    let customerId = user?.stripeCustomerId;
+      // Get performance metrics
+      const performance = await db
+        .select({
+          totalImpressions: sql<number>`sum(${contentPerformance.impressions})`,
+          totalEngagements: sql<number>`sum(${contentPerformance.engagements})`,
+        })
+        .from(contentPerformance)
+        .innerJoin(
+          scheduledPosts,
+          eq(contentPerformance.postId, scheduledPosts.id)
+        )
+        .where(eq(scheduledPosts.userId, userId));
 
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user?.email,
-        metadata: {
-          userId: userId.toString(),
-        },
+      // Get platform stats
+      const platformStats = await db
+        .select({
+          platform: contentPerformance.platform,
+          posts: sql<number>`count(distinct ${scheduledPosts.id})`,
+          impressions: sql<number>`sum(${contentPerformance.impressions})`,
+        })
+        .from(contentPerformance)
+        .innerJoin(
+          scheduledPosts,
+          eq(contentPerformance.postId, scheduledPosts.id)
+        )
+        .where(eq(scheduledPosts.userId, userId))
+        .groupBy(contentPerformance.platform);
+
+      // Get content type performance
+      const contentTypeStats = await db
+        .select({
+          type: analyticsEvents.contentType,
+          posts: sql<number>`count(*)`,
+          engagements: sql<number>`sum(case when ${analyticsEvents.eventType} = 'engagement' then 1 else 0 end)`,
+        })
+        .from(analyticsEvents)
+        .where(eq(analyticsEvents.userId, userId))
+        .groupBy(analyticsEvents.contentType);
+
+      const totalImpressions = performance[0]?.totalImpressions || 0;
+      const totalEngagements = performance[0]?.totalEngagements || 0;
+      const engagementRate =
+        totalImpressions > 0 ? totalEngagements / totalImpressions : 0;
+
+      res.json({
+        totalPosts: totalPosts[0]?.count || 0,
+        totalImpressions,
+        engagementRate,
+        platformStats,
+        contentTypeStats,
       });
-      customerId = customer.id;
+    } catch (error) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
     }
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      mode: "subscription",
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.APP_URL}/dashboard?success=true`,
-      cancel_url: `${process.env.APP_URL}/dashboard?canceled=true`,
-    });
-
-    res.json({ sessionId: session.id });
   });
 }
