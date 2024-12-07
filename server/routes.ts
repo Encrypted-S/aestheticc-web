@@ -2,7 +2,7 @@ import type { Express } from "express";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { db } from "../db";
-import { users } from "@db/schema";
+import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
@@ -19,9 +19,28 @@ export function registerRoutes(app: Express) {
   app.get("/api/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/login" }),
     (req, res) => {
-      res.redirect("/dashboard");
+      res.send(`
+        <script>
+          window.opener.postMessage({ type: 'oauth-success' }, '*');
+          window.close();
+        </script>
+      `);
     }
   );
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout(() => {
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/user", (req, res) => {
+    if (!req.user) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    res.json(req.user);
+  });
 
   // Templates
   app.get("/api/templates", async (req, res) => {

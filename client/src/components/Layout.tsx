@@ -17,8 +17,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/">
-            <a className="text-2xl font-semibold text-primary">AestheticPost</a>
+          <Link href="/" className="text-2xl font-semibold text-primary">
+            AestheticPost
           </Link>
           
           <NavigationMenu>
@@ -27,35 +27,57 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <NavigationMenuTrigger>Features</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <div className="grid gap-3 p-6 w-[400px]">
-                    <NavigationMenuLink asChild>
-                      <Link href="/templates">Templates</Link>
-                    </NavigationMenuLink>
-                    <NavigationMenuLink asChild>
-                      <Link href="/generator">Content Generator</Link>
-                    </NavigationMenuLink>
-                    <NavigationMenuLink asChild>
-                      <Link href="/calendar">Calendar</Link>
-                    </NavigationMenuLink>
+                    <div className="grid gap-3 p-4">
+                      <NavigationMenuLink asChild>
+                        <Link href="/dashboard?tab=templates">
+                          <div className="flex flex-col space-y-1">
+                            <div className="text-sm font-medium">Templates</div>
+                            <div className="text-xs text-muted-foreground">Browse ready-to-use templates</div>
+                          </div>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link href="/dashboard?tab=generate">
+                          <div className="flex flex-col space-y-1">
+                            <div className="text-sm font-medium">Content Generator</div>
+                            <div className="text-xs text-muted-foreground">Create AI-powered content</div>
+                          </div>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link href="/dashboard?tab=calendar">
+                          <div className="flex flex-col space-y-1">
+                            <div className="text-sm font-medium">Calendar</div>
+                            <div className="text-xs text-muted-foreground">Schedule and manage posts</div>
+                          </div>
+                        </Link>
+                      </NavigationMenuLink>
+                    </div>
                   </div>
                 </NavigationMenuContent>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
 
-          {location === "/" ? (
-            <div className="space-x-4">
-              <Button variant="outline" asChild>
-                <Link href="/login">Log in</Link>
+          <div className="space-x-4">
+            {location === "/" ? (
+              <>
+                <Button variant="outline" asChild>
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/login">Sign up</Link>
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={() => {
+                fetch("/api/auth/logout", { method: "POST" })
+                  .then(() => window.location.href = "/");
+              }}>
+                Log out
               </Button>
-              <Button asChild>
-                <Link href="/signup">Sign up</Link>
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={() => {/* handle logout */}}>
-              Log out
-            </Button>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
