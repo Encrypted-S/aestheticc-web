@@ -32,7 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.APP_URL || "http://localhost:5000",
+  origin: true,
   credentials: true
 }));
 
@@ -76,7 +76,7 @@ passport.deserializeUser(async (id: number, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: `${process.env.APP_URL || 'http://localhost:5000'}/api/auth/google/callback`,
+    callbackURL: `/api/auth/google/callback`,
     scope: ['profile', 'email']
   },
   async (accessToken, refreshToken, profile, done) => {
