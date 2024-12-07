@@ -67,8 +67,11 @@ export function useGoogleLogin() {
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
+      const response = await fetch("/api/config");
+      const { baseUrl } = await response.json();
+      
       const popup = window.open(
-        "/api/auth/google",
+        `${baseUrl}/api/auth/google`,
         "GoogleLogin",
         `width=${width},height=${height},left=${left},top=${top}`
       );

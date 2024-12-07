@@ -36,6 +36,14 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/config", (req, res) => {
+  app.get("/api/config", (req, res) => {
+    res.json({
+      baseUrl: process.env.NODE_ENV === 'production'
+        ? 'https://aestheticpostpro.shanesmckeown.repl.co'
+        : 'http://localhost:5000'
+    });
+  });
+
     res.json({
       baseUrl: process.env.NODE_ENV === 'production'
         ? 'https://aestheticpostpro.shanesmckeown.repl.co'
