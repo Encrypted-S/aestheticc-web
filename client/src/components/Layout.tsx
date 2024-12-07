@@ -28,30 +28,26 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <NavigationMenuContent>
                   <div className="grid gap-3 p-6 w-[400px]">
                     <div className="grid gap-3 p-4">
-                      <NavigationMenuLink asChild>
-                        <Link href="/dashboard?tab=templates">
+                      <div className="grid gap-3 p-4">
+                        <Link href="/dashboard?tab=templates" className="block">
                           <div className="flex flex-col space-y-1">
                             <div className="text-sm font-medium">Templates</div>
                             <div className="text-xs text-muted-foreground">Browse ready-to-use templates</div>
                           </div>
                         </Link>
-                      </NavigationMenuLink>
-                      <NavigationMenuLink asChild>
-                        <Link href="/dashboard?tab=generate">
+                        <Link href="/dashboard?tab=generate" className="block">
                           <div className="flex flex-col space-y-1">
                             <div className="text-sm font-medium">Content Generator</div>
                             <div className="text-xs text-muted-foreground">Create AI-powered content</div>
                           </div>
                         </Link>
-                      </NavigationMenuLink>
-                      <NavigationMenuLink asChild>
-                        <Link href="/dashboard?tab=calendar">
+                        <Link href="/dashboard?tab=calendar" className="block">
                           <div className="flex flex-col space-y-1">
                             <div className="text-sm font-medium">Calendar</div>
                             <div className="text-xs text-muted-foreground">Schedule and manage posts</div>
                           </div>
                         </Link>
-                      </NavigationMenuLink>
+                      </div>
                     </div>
                   </div>
                 </NavigationMenuContent>
