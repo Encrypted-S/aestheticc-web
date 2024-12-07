@@ -59,31 +59,60 @@ export function useLogout() {
 
 export function useGoogleLogin() {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const startGoogleLogin = () => {
-    // Google OAuth popup window settings
-    const width = 500;
-    const height = 600;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2.5;
-    const popup = window.open(
-      "/api/auth/google",
-      "GoogleLogin",
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
+    setIsLoading(true);
+    
+    try {
+      // Google OAuth popup window settings
+      const width = 500;
+      const height = 600;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2.5;
+      const popup = window.open(
+        "/api/auth/google",
+        "GoogleLogin",
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
 
-    // Handle the OAuth callback
-    window.addEventListener("message", (event) => {
-      if (event.data.type === "oauth-success") {
-        popup?.close();
-        toast({
-          title: "Login successful",
-          description: "You have been successfully logged in.",
-        });
-        window.location.href = "/dashboard";
+      if (!popup) {
+        throw new Error("Popup blocked");
       }
-    });
+
+      // Check if popup was closed
+      const popupChecker = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(popupChecker);
+          setIsLoading(false);
+        }
+      }, 1000);
+
+      // Handle the OAuth callback
+      const messageHandler = (event: MessageEvent) => {
+        if (event.data.type === "oauth-success") {
+          window.removeEventListener("message", messageHandler);
+          clearInterval(popupChecker);
+          popup?.close();
+          setIsLoading(false);
+          toast({
+            title: "Welcome!",
+            description: "You have been successfully logged in.",
+          });
+          window.location.href = "/dashboard";
+        }
+      };
+
+      window.addEventListener("message", messageHandler);
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Failed to start login process",
+        variant: "destructive",
+      });
+    }
   };
 
-  return { startGoogleLogin };
+  return { startGoogleLogin, isLoading };
 }

@@ -1,8 +1,9 @@
-import { User } from "@db/schema";
+import { type User as DbUser } from "@db/schema";
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface User extends DbUser {}
   }
 }
 

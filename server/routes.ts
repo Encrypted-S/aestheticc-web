@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-10-16",
+  apiVersion: "2023-10-16" as const,
 });
 
 export function registerRoutes(app: Express) {
@@ -18,11 +18,11 @@ export function registerRoutes(app: Express) {
   );
 
   app.get("/api/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/login" }),
+    passport.authenticate("google", { failureRedirect: "/login?error=auth_failed" }),
     (req, res) => {
       res.send(`
         <script>
-          window.opener.postMessage({ type: 'oauth-success' }, '*');
+          window.opener.postMessage({ type: 'oauth-success', user: ${JSON.stringify(req.user)} }, '*');
           window.close();
         </script>
       `);
