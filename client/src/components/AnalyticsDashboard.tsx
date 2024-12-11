@@ -201,22 +201,26 @@ export default function AnalyticsDashboard() {
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
+                        dy={5}
                       />
                       <YAxis
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
+                        dx={-5}
                       />
                       <Bar
                         dataKey="Posts"
                         fill={chartConfig.Posts.color}
                         radius={[4, 4, 0, 0]}
+                        barSize={20}
                       />
                       <Bar
                         dataKey="Impressions"
                         fill={chartConfig.Impressions.color}
                         radius={[4, 4, 0, 0]}
+                        barSize={20}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -256,22 +260,27 @@ export default function AnalyticsDashboard() {
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
+                        dy={5}
                       />
                       <YAxis
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
+                        dx={-5}
+                        domain={[0, 'auto']}
                       />
                       <Bar
                         dataKey="Posts"
                         fill={chartConfig.Posts.color}
                         radius={[4, 4, 0, 0]}
+                        barSize={20}
                       />
                       <Bar
                         dataKey="Engagements"
                         fill={chartConfig.Engagements.color}
                         radius={[4, 4, 0, 0]}
+                        barSize={20}
                       />
                     </BarChart>
                   </ResponsiveContainer>
