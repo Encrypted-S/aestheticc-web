@@ -134,7 +134,27 @@ export function registerRoutes(router: express.Router) {
           } : undefined
         } : null,
         isAuthenticated: req.isAuthenticated(),
-        user: req.user
+        user: req.user,
+        timestamp: new Date().toISOString(),
+        state: req.query.state,
+        code: req.query.code ? 'present' : 'missing'
+      });
+      
+      passport.authenticate("google", {
+        failureRedirect: "/login?error=auth_failed",
+        failureMessage: true,
+        failWithError: true
+      })(req, res, (err: Error | null) => {
+        if (err) {
+          console.error("Google authentication error:", {
+            error: err.message,
+            stack: err.stack,
+            name: err.name
+          });
+          return res.redirect('/login?error=auth_failed');
+        }
+        console.log("Google authentication successful, user:", req.user);
+        next();
       });
       
       passport.authenticate("google", {

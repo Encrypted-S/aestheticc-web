@@ -92,8 +92,10 @@ passport.use(new GoogleStrategy({
       profile: {
         id: profile.id,
         displayName: profile.displayName,
-        emails: profile.emails,
-        photos: profile.photos
+        emails: profile.emails?.map(e => e.value),
+        photos: profile.photos?.map(p => p.value),
+        provider: profile.provider,
+        _raw: profile._raw
       }
     });
     try {
