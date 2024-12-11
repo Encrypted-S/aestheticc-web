@@ -20,9 +20,22 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export function registerRoutes(router: express.Router) {
   // Auth routes
   router.get("/api/auth/user", (req, res) => {
-    if (!req.user) {
+    console.log("Auth check - Session state:", {
+      hasSession: !!req.session,
+      sessionID: req.sessionID,
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user
+    });
+
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
+
+    // Ensure session is active
+    if (req.session) {
+      req.session.touch();
+    }
+
     res.json(req.user);
   });
 

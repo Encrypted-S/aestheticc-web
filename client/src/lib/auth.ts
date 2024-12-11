@@ -28,10 +28,26 @@ export function useRequireAuth() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation("/login");
-    }
-  }, [user, isLoading, setLocation]);
+    const checkAuth = async () => {
+      try {
+        if (!isLoading) {
+          const response = await fetch("/api/auth/user");
+          if (!response.ok) {
+            throw new Error("Not authenticated");
+          }
+          const userData = await response.json();
+          if (!userData) {
+            setLocation("/login");
+          }
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        setLocation("/login");
+      }
+    };
+
+    checkAuth();
+  }, [isLoading, setLocation]);
 
   return { user, isLoading };
 }

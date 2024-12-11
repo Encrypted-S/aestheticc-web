@@ -13,12 +13,22 @@ export default function Dashboard() {
   const params = new URLSearchParams(location.split("?")[1]);
   const defaultTab = params.get("tab") || "generate";
 
+  // Show loading state while checking authentication
   if (isLoading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Loading your dashboard...</span>
+        </div>
+      </div>
+    );
   }
 
+  // If no user is found after loading completes, render nothing (useRequireAuth will handle redirect)
   if (!user) {
-    return null; // useRequireAuth will redirect to login
+    console.log("No user found in Dashboard, redirecting...");
+    return null;
   }
 
   return (
