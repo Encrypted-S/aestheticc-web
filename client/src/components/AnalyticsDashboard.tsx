@@ -9,17 +9,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BarChart, LineChart, ResponsiveContainer } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { BarChart, LineChart, ResponsiveContainer, XAxis, YAxis, Bar, Tooltip } from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+
+interface PlatformStat {
+  platform: string;
+  posts: number;
+  impressions: number;
+}
+
+interface ContentTypeStat {
+  type: string;
+  posts: number;
+  engagements: number;
+}
+
+interface AnalyticsData {
+  totalPosts: number;
+  totalImpressions: number;
+  engagementRate: number;
+  platformStats: PlatformStat[];
+  contentTypeStats: ContentTypeStat[];
+}
 
 export default function AnalyticsDashboard() {
   const [timeRange, setTimeRange] = useState<string>("7d");
 
-  const { data: analytics, isLoading, refetch } = useQuery({
+  const { data: analytics, isLoading, refetch } = useQuery<AnalyticsData>({
     queryKey: ["analytics", timeRange],
     queryFn: async () => {
       const response = await fetch(`/api/analytics?timeRange=${timeRange}`);
@@ -143,17 +159,15 @@ export default function AnalyticsDashboard() {
               <ChartContainer config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={platformChartData}>
-                    <ChartTooltip>
-                      <ChartTooltipContent />
-                    </ChartTooltip>
-                    <BarChart.XAxis dataKey="name" />
-                    <BarChart.YAxis />
-                    <BarChart.Bar
+                    <Tooltip />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Bar
                       dataKey="Posts"
                       fill="hsl(var(--primary))"
                       radius={[4, 4, 0, 0]}
                     />
-                    <BarChart.Bar
+                    <Bar
                       dataKey="Impressions"
                       fill="hsl(var(--secondary))"
                       radius={[4, 4, 0, 0]}
@@ -173,17 +187,15 @@ export default function AnalyticsDashboard() {
               <ChartContainer config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={contentTypeChartData}>
-                    <ChartTooltip>
-                      <ChartTooltipContent />
-                    </ChartTooltip>
-                    <BarChart.XAxis dataKey="name" />
-                    <BarChart.YAxis />
-                    <BarChart.Bar
+                    <Tooltip />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Bar
                       dataKey="Posts"
                       fill="hsl(var(--primary))"
                       radius={[4, 4, 0, 0]}
                     />
-                    <BarChart.Bar
+                    <Bar
                       dataKey="Engagements"
                       fill="hsl(var(--accent))"
                       radius={[4, 4, 0, 0]}
