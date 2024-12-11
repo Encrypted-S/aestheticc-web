@@ -9,7 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BarChart, LineChart, ResponsiveContainer, XAxis, YAxis, Bar, Tooltip } from "recharts";
+import {
+  BarChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Bar,
+  Tooltip,
+  TooltipProps,
+} from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 
 interface PlatformStat {
@@ -69,13 +77,13 @@ export default function AnalyticsDashboard() {
   };
 
   // Transform data for charts
-  const platformChartData = analytics?.platformStats?.map((stat: any) => ({
+  const platformChartData = analytics?.platformStats?.map((stat) => ({
     name: stat.platform,
     Posts: stat.posts,
     Impressions: stat.impressions,
   })) || [];
 
-  const contentTypeChartData = analytics?.contentTypeStats?.map((stat: any) => ({
+  const contentTypeChartData = analytics?.contentTypeStats?.map((stat) => ({
     name: stat.type,
     Posts: stat.posts,
     Engagements: stat.engagements,
@@ -158,10 +166,23 @@ export default function AnalyticsDashboard() {
             <div className="h-[300px]">
               <ChartContainer config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={platformChartData}>
-                    <Tooltip />
-                    <XAxis dataKey="name" />
-                    <YAxis />
+                  <BarChart data={platformChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <Tooltip 
+                      cursor={{ fill: 'var(--background)' }}
+                      contentStyle={{ 
+                        backgroundColor: 'var(--background)',
+                        border: '1px solid var(--border)'
+                      }}
+                    />
+                    <XAxis 
+                      dataKey="name"
+                      stroke="var(--foreground)"
+                      fontSize={12}
+                    />
+                    <YAxis
+                      stroke="var(--foreground)"
+                      fontSize={12}
+                    />
                     <Bar
                       dataKey="Posts"
                       fill="hsl(var(--primary))"
@@ -186,10 +207,23 @@ export default function AnalyticsDashboard() {
             <div className="h-[300px]">
               <ChartContainer config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={contentTypeChartData}>
-                    <Tooltip />
-                    <XAxis dataKey="name" />
-                    <YAxis />
+                  <BarChart data={contentTypeChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <Tooltip 
+                      cursor={{ fill: 'var(--background)' }}
+                      contentStyle={{ 
+                        backgroundColor: 'var(--background)',
+                        border: '1px solid var(--border)'
+                      }}
+                    />
+                    <XAxis 
+                      dataKey="name"
+                      stroke="var(--foreground)"
+                      fontSize={12}
+                    />
+                    <YAxis
+                      stroke="var(--foreground)"
+                      fontSize={12}
+                    />
                     <Bar
                       dataKey="Posts"
                       fill="hsl(var(--primary))"
