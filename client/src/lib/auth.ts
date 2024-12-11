@@ -9,6 +9,8 @@ export type User = {
   name: string;
   avatarUrl?: string;
   subscriptionStatus: string;
+  // Added timestamp for session management
+  lastLogin?: Date;
 };
 
 export function useUser() {
