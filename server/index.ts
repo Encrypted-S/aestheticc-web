@@ -32,8 +32,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: function(origin, callback) {
+    callback(null, true); // Allow all origins in development
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
 // Session configuration
@@ -83,7 +88,7 @@ console.log("Configuring Google OAuth Strategy with:", {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: 'https://aestheticc-web.replit.app/api/auth/google/callback',
+    callbackURL: '/api/auth/google/callback',
     scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
     proxy: true
   },
