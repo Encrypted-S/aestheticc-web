@@ -9,6 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BarChart, LineChart, ResponsiveContainer } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 export default function AnalyticsDashboard() {
   const [timeRange, setTimeRange] = useState<string>("7d");
@@ -46,6 +52,31 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  // Transform data for charts
+  const platformChartData = analytics?.platformStats?.map((stat: any) => ({
+    name: stat.platform,
+    Posts: stat.posts,
+    Impressions: stat.impressions,
+  })) || [];
+
+  const contentTypeChartData = analytics?.contentTypeStats?.map((stat: any) => ({
+    name: stat.type,
+    Posts: stat.posts,
+    Engagements: stat.engagements,
+  })) || [];
+
+  const chartConfig = {
+    Posts: {
+      color: "hsl(var(--primary))",
+    },
+    Impressions: {
+      color: "hsl(var(--secondary))",
+    },
+    Engagements: {
+      color: "hsl(var(--accent))",
+    },
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -61,15 +92,15 @@ export default function AnalyticsDashboard() {
             </Button>
           )}
           <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select time range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="90d">Last 90 days</SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -108,14 +139,28 @@ export default function AnalyticsDashboard() {
             <CardTitle>Platform Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analytics?.platformStats?.map((stat: any) => (
-                <div key={stat.platform} className="flex justify-between items-center">
-                  <span className="font-medium">{stat.platform}</span>
-                  <span>{stat.posts} posts</span>
-                  <span>{stat.impressions} impressions</span>
-                </div>
-              ))}
+            <div className="h-[300px]">
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={platformChartData}>
+                    <ChartTooltip>
+                      <ChartTooltipContent />
+                    </ChartTooltip>
+                    <BarChart.XAxis dataKey="name" />
+                    <BarChart.YAxis />
+                    <BarChart.Bar
+                      dataKey="Posts"
+                      fill="hsl(var(--primary))"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <BarChart.Bar
+                      dataKey="Impressions"
+                      fill="hsl(var(--secondary))"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
@@ -124,14 +169,28 @@ export default function AnalyticsDashboard() {
             <CardTitle>Content Type Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analytics?.contentTypeStats?.map((stat: any) => (
-                <div key={stat.type} className="flex justify-between items-center">
-                  <span className="font-medium">{stat.type}</span>
-                  <span>{stat.posts} posts</span>
-                  <span>{stat.engagements} engagements</span>
-                </div>
-              ))}
+            <div className="h-[300px]">
+              <ChartContainer config={chartConfig}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={contentTypeChartData}>
+                    <ChartTooltip>
+                      <ChartTooltipContent />
+                    </ChartTooltip>
+                    <BarChart.XAxis dataKey="name" />
+                    <BarChart.YAxis />
+                    <BarChart.Bar
+                      dataKey="Posts"
+                      fill="hsl(var(--primary))"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <BarChart.Bar
+                      dataKey="Engagements"
+                      fill="hsl(var(--accent))"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
