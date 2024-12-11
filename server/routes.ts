@@ -105,7 +105,12 @@ export function registerRoutes(router: express.Router) {
   });
 
   router.get("/api/auth/google", (req, res, next) => {
-    console.log("Starting Google OAuth flow with scopes:", ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']);
+    console.log("Starting Google OAuth flow:", {
+      scopes: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
+      headers: req.headers,
+      referer: req.headers.referer,
+      host: req.headers.host
+    });
     passport.authenticate("google", {
       scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']
     })(req, res, next);
@@ -114,10 +119,22 @@ export function registerRoutes(router: express.Router) {
   router.get(
     "/api/auth/google/callback",
     (req, res, next) => {
-      console.log("Received Google OAuth callback", {
+      console.log("Google OAuth callback received:", {
+        headers: {
+          host: req.headers.host,
+          referer: req.headers.referer,
+          origin: req.headers.origin
+        },
         query: req.query,
-        session: req.session,
-        isAuthenticated: req.isAuthenticated()
+        session: req.session ? {
+          ...req.session,
+          cookie: req.session.cookie ? {
+            ...req.session.cookie,
+            expires: req.session.cookie.expires?.toISOString()
+          } : undefined
+        } : null,
+        isAuthenticated: req.isAuthenticated(),
+        user: req.user
       });
       
       passport.authenticate("google", {
@@ -126,9 +143,14 @@ export function registerRoutes(router: express.Router) {
         failWithError: true
       })(req, res, (err: Error | null) => {
         if (err) {
-          console.error("Google authentication error:", err);
+          console.error("Google authentication error:", {
+            error: err.message,
+            stack: err.stack,
+            name: err.name
+          });
           return res.redirect('/login?error=auth_failed');
         }
+        console.log("Google authentication successful, user:", req.user);
         next();
       });
     },
