@@ -16,7 +16,7 @@ import {
   YAxis,
   Bar,
   Tooltip,
-  TooltipProps,
+  CartesianGrid,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,7 +95,7 @@ export default function AnalyticsDashboard() {
   })) || [];
 
   const contentTypeChartData: ContentTypeChartData[] = analytics?.contentTypeStats?.map((stat) => ({
-    name: stat.type,
+    name: stat.type || 'Unknown',
     Posts: stat.posts,
     Engagements: stat.engagements,
   })) || [];
@@ -113,6 +113,12 @@ export default function AnalyticsDashboard() {
       label: "Engagements",
       color: "hsl(var(--accent))",
     },
+  };
+
+  const commonChartProps = {
+    width: "100%",
+    height: 300,
+    margin: { top: 20, right: 30, left: 40, bottom: 40 },
   };
 
   if (error) {
@@ -182,45 +188,48 @@ export default function AnalyticsDashboard() {
             ) : (
               <div className="h-[300px]">
                 <ChartContainer config={chartConfig}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
+                  <ResponsiveContainer {...commonChartProps}>
+                    <BarChart
                       data={platformChartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      barGap={8}
+                      barCategoryGap={32}
                     >
-                      <Tooltip 
-                        cursor={{ fill: 'var(--background)' }}
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px',
-                          padding: '8px'
-                        }}
-                      />
-                      <XAxis 
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis
                         dataKey="name"
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
-                        dy={5}
+                        axisLine={false}
+                        padding={{ left: 20, right: 20 }}
                       />
                       <YAxis
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
-                        dx={-5}
+                        tickFormatter={(value) => value.toLocaleString()}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "var(--muted)" }}
+                        contentStyle={{
+                          backgroundColor: "var(--background)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "6px",
+                          padding: "8px",
+                        }}
                       />
                       <Bar
                         dataKey="Posts"
                         fill={chartConfig.Posts.color}
                         radius={[4, 4, 0, 0]}
-                        barSize={20}
+                        maxBarSize={32}
                       />
                       <Bar
                         dataKey="Impressions"
                         fill={chartConfig.Impressions.color}
                         radius={[4, 4, 0, 0]}
-                        barSize={20}
+                        maxBarSize={32}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -229,6 +238,7 @@ export default function AnalyticsDashboard() {
             )}
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Content Type Performance</CardTitle>
@@ -241,46 +251,48 @@ export default function AnalyticsDashboard() {
             ) : (
               <div className="h-[300px]">
                 <ChartContainer config={chartConfig}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
+                  <ResponsiveContainer {...commonChartProps}>
+                    <BarChart
                       data={contentTypeChartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      barGap={8}
+                      barCategoryGap={32}
                     >
-                      <Tooltip 
-                        cursor={{ fill: 'var(--background)' }}
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px',
-                          padding: '8px'
-                        }}
-                      />
-                      <XAxis 
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis
                         dataKey="name"
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
-                        dy={5}
+                        axisLine={false}
+                        padding={{ left: 20, right: 20 }}
                       />
                       <YAxis
                         stroke="var(--foreground)"
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
-                        dx={-5}
-                        domain={[0, 'auto']}
+                        tickFormatter={(value) => value.toLocaleString()}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "var(--muted)" }}
+                        contentStyle={{
+                          backgroundColor: "var(--background)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "6px",
+                          padding: "8px",
+                        }}
                       />
                       <Bar
                         dataKey="Posts"
                         fill={chartConfig.Posts.color}
                         radius={[4, 4, 0, 0]}
-                        barSize={20}
+                        maxBarSize={32}
                       />
                       <Bar
                         dataKey="Engagements"
                         fill={chartConfig.Engagements.color}
                         radius={[4, 4, 0, 0]}
-                        barSize={20}
+                        maxBarSize={32}
                       />
                     </BarChart>
                   </ResponsiveContainer>
