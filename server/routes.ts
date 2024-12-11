@@ -104,7 +104,9 @@ export function registerRoutes(router: express.Router) {
     }
   });
 
-  router.get("/api/auth/google", passport.authenticate("google"));
+  router.get("/api/auth/google", passport.authenticate("google", {
+    scope: ["email", "profile"]
+  }));
 
   router.get(
     "/api/auth/google/callback",
