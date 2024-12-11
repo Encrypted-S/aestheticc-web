@@ -156,12 +156,17 @@ export function registerRoutes(router: express.Router) {
     },
     (req, res) => {
       console.log("Google OAuth authentication successful");
-      const origin = 'https://aestheticc-web.replit.app';
-      
       res.send(`
         <script>
-          window.opener.postMessage({ type: 'oauth-success' }, '${origin}');
-          window.close();
+          if (window.opener) {
+            window.opener.postMessage(
+              { type: 'oauth-success' },
+              window.opener.origin
+            );
+            window.close();
+          } else {
+            window.location.href = '/dashboard';
+          }
         </script>
       `);
     }
