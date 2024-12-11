@@ -119,7 +119,7 @@ export function registerRoutes(router: express.Router) {
     },
     (req, res) => {
       console.log("Google OAuth authentication successful");
-      const origin = 'https://aestheticpostpro.shanemckeown.repl.co';
+      const origin = 'https://f9e0b7b6-6cc4-401c-ad46-ba99d97a103f.replit.app';
       
       res.send(`
         <script>
