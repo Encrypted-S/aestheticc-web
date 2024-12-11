@@ -24,19 +24,43 @@ export function registerRoutes(router: express.Router) {
       hasSession: !!req.session,
       sessionID: req.sessionID,
       isAuthenticated: req.isAuthenticated(),
-      user: req.user
+      user: req.user,
+      cookies: req.cookies,
+      headers: {
+        cookie: req.headers.cookie,
+        authorization: req.headers.authorization
+      }
     });
 
-    if (!req.isAuthenticated() || !req.user) {
+    // Check if session exists and is valid
+    if (!req.session) {
+      console.error("No session found");
+      return res.status(401).json({ error: "No session found" });
+    }
+
+    // Verify authentication
+    if (!req.isAuthenticated()) {
+      console.error("User not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Ensure session is active
-    if (req.session) {
-      req.session.touch();
+    // Verify user exists
+    if (!req.user) {
+      console.error("No user found in session");
+      return res.status(401).json({ error: "No user found" });
     }
 
-    res.json(req.user);
+    // Update session expiry
+    req.session.touch();
+
+    // Force session save to ensure it's persisted
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ error: "Session save failed" });
+      }
+      res.json(req.user);
+    });
   });
 
   // Analytics routes

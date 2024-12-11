@@ -45,12 +45,14 @@ app.use(session({
     tableName: 'session'
   }),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    secure: process.env.NODE_ENV === 'production',
-  }
+    secure: false, // Allow non-HTTPS for development
+    sameSite: 'lax'
+  },
+  name: 'sessionId' // Set a specific cookie name
 }));
 
 // Passport configuration
