@@ -73,6 +73,11 @@ passport.deserializeUser(async (id: number, done) => {
 });
 
 // Google OAuth Strategy
+console.log("Configuring Google OAuth Strategy with:", {
+  hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+  hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+  callbackUrl: 'https://aestheticc-web.replit.app/api/auth/google/callback'
+});
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
