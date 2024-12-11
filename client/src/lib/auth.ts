@@ -69,8 +69,10 @@ export function useGoogleLogin() {
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
       
+      const baseUrl = window.location.origin;
+      console.log("OAuth start - Base URL:", baseUrl);
       const popup = window.open(
-        `/api/auth/google`,
+        `${baseUrl}/api/auth/google`,
         "GoogleLogin",
         `width=${width},height=${height},left=${left},top=${top}`
       );
@@ -82,6 +84,11 @@ export function useGoogleLogin() {
       // Handle the OAuth callback
       const messageHandler = (event: MessageEvent) => {
         const origin = window.location.origin;
+        console.log("Checking message origin:", {
+          expected: origin,
+          received: event.origin,
+          eventData: event.data
+        });
         if (event.origin !== origin) {
           console.error("Received message from unexpected origin:", event.origin);
           return;
