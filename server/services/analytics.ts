@@ -55,23 +55,47 @@ export async function generateSampleAnalytics(userId: number) {
   console.log("Starting sample analytics generation for user:", userId);
   
   const platforms = ["instagram", "facebook", "twitter", "linkedin"];
-  const contentTypes = ["educational", "beforeAfter", "promotional", "procedure", "tips"];
-  const eventTypes = ["view", "engagement", "click"];
+  const contentTypes = ["beforeAfter", "educational", "promotional", "procedure", "tips", "casestudy", "testimonial"];
+  const eventTypes = ["view", "engagement", "click", "share", "save"];
+  
+  // Helper function to generate random date within a range
+  const randomDate = (start: Date, end: Date) => {
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  };
+
+  // Helper function to generate realistic engagement numbers
+  const generateEngagementMetrics = (baseImpressions: number) => {
+    const engagementRate = 0.02 + Math.random() * 0.08; // 2-10% engagement rate
+    const clickRate = 0.01 + Math.random() * 0.04; // 1-5% click rate
+    return {
+      impressions: baseImpressions,
+      engagements: Math.floor(baseImpressions * engagementRate),
+      clicks: Math.floor(baseImpressions * clickRate),
+    };
+  };
 
   try {
     console.log("Creating sample posts...");
     const postIds = [];
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     
-    // Create sample posts
-    for (let i = 0; i < 5; i++) {
+    // Create more sample posts with varied scheduling
+    for (let i = 0; i < 15; i++) {
       console.log(`Creating post ${i + 1}...`);
+      const contentType = contentTypes[Math.floor(Math.random() * contentTypes.length)];
       const [post] = await db.insert(scheduledPosts)
         .values({
           userId,
-          content: { text: `Sample post ${i + 1}`, hashtags: [], imageUrl: null },
-          platforms: platforms.slice(0, Math.floor(Math.random() * 3) + 1),
-          scheduledFor: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000),
-          published: Math.random() > 0.5,
+          content: {
+            text: `Sample ${contentType} post ${i + 1}`,
+            hashtags: [`#${contentType}`, '#aestheticsclinic', '#beauty'],
+            imageUrl: null,
+            type: contentType,
+          },
+          platforms: platforms.slice(0, Math.floor(Math.random() * 3) + 2), // At least 2 platforms
+          scheduledFor: randomDate(thirtyDaysAgo, now),
+          published: true, // All posts are published for sample data
         })
         .returning();
       
@@ -79,37 +103,44 @@ export async function generateSampleAnalytics(userId: number) {
     }
 
     console.log("Creating performance metrics...");
-    // Generate performance metrics for posts
+    // Generate realistic performance metrics for posts
     for (const postId of postIds) {
       for (const platform of platforms) {
+        const baseImpressions = Math.floor(Math.random() * 2000) + 500; // 500-2500 base impressions
+        const metrics = generateEngagementMetrics(baseImpressions);
+        
         await db.insert(contentPerformance)
           .values({
             postId,
             platform,
-            impressions: Math.floor(Math.random() * 1000) + 100,
-            engagements: Math.floor(Math.random() * 200) + 50,
-            clicks: Math.floor(Math.random() * 50) + 10,
+            ...metrics,
           });
       }
     }
 
     console.log("Creating analytics events...");
-    // Generate analytics events
-    for (let i = 0; i < 50; i++) {
-      const platform = platforms[Math.floor(Math.random() * platforms.length)];
-      const contentType = contentTypes[Math.floor(Math.random() * contentTypes.length)];
-      const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+    // Generate more diverse analytics events
+    const eventsPerPost = 20; // More events per post for better data
+    for (const postId of postIds) {
+      for (let i = 0; i < eventsPerPost; i++) {
+        const platform = platforms[Math.floor(Math.random() * platforms.length)];
+        const contentType = contentTypes[Math.floor(Math.random() * contentTypes.length)];
+        const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+        const eventDate = randomDate(thirtyDaysAgo, now);
 
-      await trackAnalyticsEvent({
-        userId,
-        eventType,
-        platform,
-        contentType,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          postId: postIds[Math.floor(Math.random() * postIds.length)],
-        },
-      });
+        await trackAnalyticsEvent({
+          userId,
+          eventType,
+          platform,
+          contentType,
+          metadata: {
+            timestamp: eventDate.toISOString(),
+            postId,
+            platform,
+            contentType,
+          },
+        });
+      }
     }
 
     console.log("Sample data generation completed successfully");
