@@ -124,7 +124,7 @@ export function registerRoutes(router: express.Router) {
         failureRedirect: "/login?error=auth_failed",
         failureMessage: true,
         failWithError: true
-      })(req, res, (err) => {
+      })(req, res, (err: Error | null) => {
         if (err) {
           console.error("Google authentication error:", err);
           return res.redirect('/login?error=auth_failed');

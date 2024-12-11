@@ -62,6 +62,7 @@ export function useGoogleLogin() {
 
   const startGoogleLogin = async () => {
     try {
+      console.log("Initiating Google OAuth login flow");
       // Google OAuth popup window settings
       const width = 500;
       const height = 600;
