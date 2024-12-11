@@ -89,22 +89,50 @@ export function useGoogleLogin() {
           received: event.origin,
           eventData: event.data
         });
+        
+        // Verify origin
         if (event.origin !== origin) {
           console.error("Received message from unexpected origin:", event.origin);
           return;
         }
 
+        // Clean up event listener
+        const cleanup = () => {
+          window.removeEventListener("message", messageHandler);
+          if (popup && !popup.closed) {
+            popup.close();
+          }
+        };
+
         if (event.data.type === "oauth-success") {
-          window.removeEventListener("message", messageHandler);
-          popup?.close();
-          toast({
-            title: "Welcome!",
-            description: "You have been successfully logged in.",
-          });
-          window.location.href = "/dashboard";
+          cleanup();
+          
+          // Verify authentication state
+          fetch("/api/auth/user")
+            .then(response => {
+              if (!response.ok) {
+                throw new Error("Authentication verification failed");
+              }
+              return response.json();
+            })
+            .then(() => {
+              toast({
+                title: "Welcome!",
+                description: "You have been successfully logged in.",
+              });
+              // Use navigation instead of direct location change
+              window.location.href = "/dashboard";
+            })
+            .catch(error => {
+              console.error("Auth verification failed:", error);
+              toast({
+                title: "Login verification failed",
+                description: "Please try logging in again",
+                variant: "destructive",
+              });
+            });
         } else if (event.data.type === "oauth-error") {
-          window.removeEventListener("message", messageHandler);
-          popup?.close();
+          cleanup();
           toast({
             title: "Login failed",
             description: event.data.message || "Failed to authenticate with Google",

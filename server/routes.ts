@@ -143,7 +143,8 @@ export function registerRoutes(router: express.Router) {
       passport.authenticate("google", {
         failureRedirect: "/login?error=auth_failed",
         failureMessage: true,
-        failWithError: true
+        failWithError: true,
+        session: true
       })(req, res, (err: Error | null) => {
         if (err) {
           console.error("Google authentication error:", {
@@ -153,42 +154,43 @@ export function registerRoutes(router: express.Router) {
           });
           return res.redirect('/login?error=auth_failed');
         }
-        console.log("Google authentication successful, user:", req.user);
-        next();
-      });
-      
-      passport.authenticate("google", {
-        failureRedirect: "/login?error=auth_failed",
-        failureMessage: true,
-        failWithError: true
-      })(req, res, (err: Error | null) => {
-        if (err) {
-          console.error("Google authentication error:", {
-            error: err.message,
-            stack: err.stack,
-            name: err.name
-          });
-          return res.redirect('/login?error=auth_failed');
-        }
-        console.log("Google authentication successful, user:", req.user);
-        next();
-      });
-    },
-    (req, res) => {
-      console.log("Google OAuth authentication successful");
-      res.send(`
-        <script>
-          if (window.opener) {
-            window.opener.postMessage(
-              { type: 'oauth-success' },
-              window.opener.origin
-            );
-            window.close();
-          } else {
-            window.location.href = '/dashboard';
+        
+        console.log("Authentication successful, session state:", {
+          sessionExists: !!req.session,
+          isAuthenticated: req.isAuthenticated(),
+          user: req.user,
+          sessionID: req.sessionID
+        });
+
+        // Ensure session is saved before redirect
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            return res.redirect('/login?error=session_error');
           }
-        </script>
-      `);
+          
+          if (req.session) {
+            req.session.touch(); // Update session expiry
+          }
+
+          // Send response with proper origin check
+          res.send(`
+            <script>
+              if (window.opener) {
+                const targetOrigin = window.opener.origin;
+                console.log("Sending success message to:", targetOrigin);
+                window.opener.postMessage(
+                  { type: 'oauth-success' },
+                  targetOrigin
+                );
+                window.close();
+              } else {
+                window.location.href = '/dashboard';
+              }
+            </script>
+          `);
+        });
+      });
     }
   );
 
