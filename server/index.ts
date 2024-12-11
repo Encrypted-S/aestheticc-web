@@ -77,9 +77,20 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     callbackURL: 'https://f9e0b7b6-6cc4-401c-ad46-ba99d97a103f.replit.app/api/auth/google/callback',
+    scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
     proxy: true
   },
   async (accessToken, refreshToken, profile, done) => {
+    console.log('Google Strategy callback received:', {
+      accessToken: accessToken ? 'present' : 'missing',
+      refreshToken: refreshToken ? 'present' : 'missing',
+      profile: {
+        id: profile.id,
+        displayName: profile.displayName,
+        emails: profile.emails,
+        photos: profile.photos
+      }
+    });
     try {
       const existingUser = await db.query.users.findFirst({
         where: eq(users.googleId, profile.id)

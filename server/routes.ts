@@ -104,18 +104,33 @@ export function registerRoutes(router: express.Router) {
     }
   });
 
-  router.get("/api/auth/google", passport.authenticate("google", {
-    scope: ["email", "profile"]
-  }));
+  router.get("/api/auth/google", (req, res, next) => {
+    console.log("Starting Google OAuth flow with scopes:", ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']);
+    passport.authenticate("google", {
+      scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']
+    })(req, res, next);
+  });
 
   router.get(
     "/api/auth/google/callback",
     (req, res, next) => {
-      console.log("Received Google OAuth callback");
+      console.log("Received Google OAuth callback", {
+        query: req.query,
+        session: req.session,
+        isAuthenticated: req.isAuthenticated()
+      });
+      
       passport.authenticate("google", {
         failureRedirect: "/login?error=auth_failed",
-        failureMessage: true
-      })(req, res, next);
+        failureMessage: true,
+        failWithError: true
+      })(req, res, (err) => {
+        if (err) {
+          console.error("Google authentication error:", err);
+          return res.redirect('/login?error=auth_failed');
+        }
+        next();
+      });
     },
     (req, res) => {
       console.log("Google OAuth authentication successful");
