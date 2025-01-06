@@ -44,7 +44,7 @@ export default function LibraryView() {
                 <div className="flex items-center gap-2">
                   <ScrollText className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    {post.platforms.join(", ")}
+                    {Array.isArray(post.platforms) ? post.platforms.join(", ") : post.platforms}
                   </span>
                 </div>
                 <div>
@@ -58,7 +58,7 @@ export default function LibraryView() {
             </div>
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
               <p>
-                Created: {new Date(post.createdAt).toLocaleDateString()}
+                Created: {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'N/A'}
               </p>
               <p>
                 Scheduled: {new Date(post.scheduledFor).toLocaleDateString()}
