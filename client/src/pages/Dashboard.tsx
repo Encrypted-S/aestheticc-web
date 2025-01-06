@@ -4,6 +4,7 @@ import ContentGenerator from "../components/ContentGenerator";
 import TemplateLibrary from "../components/TemplateLibrary";
 import ContentCalendar from "../components/ContentCalendar";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
+import LibraryView from "../components/LibraryView";
 import { Button } from "@/components/ui/button";
 import { 
   PenLine, 
@@ -52,6 +53,7 @@ export default function Dashboard() {
 
   const menuItems = [
     { id: "generate", label: "Generate Post", icon: <PenLine className="h-5 w-5" /> },
+    { id: "library", label: "Library", icon: <ScrollText className="h-5 w-5" /> },
     { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-5 w-5" /> },
     { id: "calendar", label: "Calendar", icon: <Calendar className="h-5 w-5" /> },
     { id: "analytics", label: "Analytics", icon: <BarChart className="h-5 w-5" /> },
@@ -61,6 +63,8 @@ export default function Dashboard() {
     switch (currentTab) {
       case "generate":
         return <ContentGenerator />;
+      case "library":
+        return <LibraryView />;
       case "templates":
         return <TemplateLibrary />;
       case "calendar":
