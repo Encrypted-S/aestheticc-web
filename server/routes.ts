@@ -10,6 +10,7 @@ import {
   contentPerformance,
 } from "@db/schema";
 import { trackAnalyticsEvent, generateSampleAnalytics } from "./services/analytics";
+import { generateContent } from "./services/openai";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
@@ -20,120 +21,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export function registerRoutes(router: express.Router) {
   // Auth routes
   router.get("/api/auth/user", (req, res) => {
-    console.log("Auth check - Session state:", {
-      hasSession: !!req.session,
-      sessionID: req.sessionID,
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user,
-      cookies: req.cookies,
-      session: req.session
-    });
-
-    if (!req.session) {
-      console.error("No session found");
-      return res.status(401).json({ error: "No session found" });
-    }
-
     if (!req.isAuthenticated()) {
-      console.error("User not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     if (!req.user) {
-      console.error("No user found in session");
       return res.status(401).json({ error: "No user found" });
     }
 
-    // Update session expiry
-    req.session.touch();
-    req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
-
-    // Force session save to ensure it's persisted
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save error:", err);
-        return res.status(500).json({ error: "Session save failed" });
-      }
-      res.json(req.user);
-    });
-  });
-
-  // Analytics routes
-  router.get("/api/analytics", async (req, res) => {
-    const { timeRange = "7d" } = req.query;
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      // Get total posts
-      const totalPosts = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(scheduledPosts)
-        .where(eq(scheduledPosts.userId, userId));
-
-      // Get performance metrics
-      const performance = await db
-        .select({
-          totalImpressions: sql<number>`sum(${contentPerformance.impressions})`,
-          totalEngagements: sql<number>`sum(${contentPerformance.engagements})`,
-        })
-        .from(contentPerformance)
-        .innerJoin(scheduledPosts, eq(contentPerformance.postId, scheduledPosts.id))
-        .where(eq(scheduledPosts.userId, userId));
-
-      // Get platform stats
-      const platformStats = await db
-        .select({
-          platform: contentPerformance.platform,
-          posts: sql<number>`count(distinct ${scheduledPosts.id})`,
-          impressions: sql<number>`sum(${contentPerformance.impressions})`,
-        })
-        .from(contentPerformance)
-        .innerJoin(scheduledPosts, eq(contentPerformance.postId, scheduledPosts.id))
-        .where(eq(scheduledPosts.userId, userId))
-        .groupBy(contentPerformance.platform);
-
-      // Get content type performance
-      const contentTypeStats = await db
-        .select({
-          type: analyticsEvents.contentType,
-          posts: sql<number>`count(*)`,
-          engagements: sql<number>`sum(case when ${analyticsEvents.eventType} = 'engagement' then 1 else 0 end)`,
-        })
-        .from(analyticsEvents)
-        .where(eq(analyticsEvents.userId, userId))
-        .groupBy(analyticsEvents.contentType);
-
-      const totalImpressions = Number(performance[0]?.totalImpressions) || 0;
-      const totalEngagements = Number(performance[0]?.totalEngagements) || 0;
-      const engagementRate = totalImpressions > 0 ? totalEngagements / totalImpressions : 0;
-
-      // Ensure platformStats and contentTypeStats are always arrays
-      const formattedPlatformStats = platformStats || [];
-      const formattedContentTypeStats = contentTypeStats || [];
-
-      console.log('Analytics response:', {
-        totalPosts: Number(totalPosts[0]?.count) || 0,
-        totalImpressions,
-        engagementRate,
-        platformStats: formattedPlatformStats,
-        contentTypeStats: formattedContentTypeStats,
-      });
-
-      res.json({
-        totalPosts: Number(totalPosts[0]?.count) || 0,
-        totalImpressions,
-        engagementRate,
-        platformStats: formattedPlatformStats,
-        contentTypeStats: formattedContentTypeStats,
-      });
-    } catch (error) {
-      console.error("Analytics error:", error);
-      res.status(500).json({ error: "Failed to fetch analytics" });
-    }
+    res.json(req.user);
   });
 
   router.get("/api/auth/google", (req, res, next) => {
@@ -250,43 +146,12 @@ export function registerRoutes(router: express.Router) {
           })
           .returning();
 
-        // Properly set up the session
-        req.session.regenerate(async (err) => {
+        req.login(user, (err) => {
           if (err) {
-            console.error("Session regeneration failed:", err);
+            console.error("Login failed:", err);
             return res.status(500).json({ error: "Login failed" });
           }
-
-          // Set user in session
-          req.session.user = user;
-          req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
-
-          // Save session before login
-          await new Promise((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) {
-                console.error("Session save failed:", err);
-                reject(err);
-              }
-              resolve(null);
-            });
-          });
-
-          // Complete authentication
-          req.login(user, (err) => {
-            if (err) {
-              console.error("Login failed:", err);
-              return res.status(500).json({ error: "Login failed" });
-            }
-
-            console.log("Dev login successful:", {
-              user,
-              sessionID: req.sessionID,
-              authenticated: req.isAuthenticated()
-            });
-
-            res.json(user);
-          });
+          res.json(user);
         });
       } catch (error) {
         console.error("Dev login error:", error);
@@ -393,7 +258,7 @@ export function registerRoutes(router: express.Router) {
     });
   }
 
-  // Content generation routes
+  // Content generation routes (from edited snippet)
   router.post("/api/generate-content", async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
