@@ -24,6 +24,14 @@ export default function Dashboard() {
   const [location, setLocation] = useLocation();
   const params = new URLSearchParams(window.location.search);
   const currentTab = params.get("tab") || "generate";
+  
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab") || "generate";
+    if (tab !== currentTab) {
+      setLocation(`/dashboard?tab=${tab}`);
+    }
+  }, [location]);
 
   // Show loading state while checking authentication
   if (isLoading) {
