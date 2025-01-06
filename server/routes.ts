@@ -255,11 +255,28 @@ export function registerRoutes(router: express.Router) {
           })
           .returning();
 
-        req.login(user, (err) => {
+        // Update session handling
+        req.session.regenerate((err) => {
           if (err) {
+            console.error("Session regeneration failed:", err);
             return res.status(500).json({ error: "Login failed" });
           }
-          res.json(user);
+
+          req.session.user = user;
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save failed:", err);
+              return res.status(500).json({ error: "Login failed" });
+            }
+
+            req.login(user, (err) => {
+              if (err) {
+                console.error("Login failed:", err);
+                return res.status(500).json({ error: "Login failed" });
+              }
+              res.json(user);
+            });
+          });
         });
       } catch (error) {
         console.error("Dev login error:", error);
