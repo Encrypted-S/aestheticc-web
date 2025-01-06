@@ -81,7 +81,7 @@ async function startServer() {
   }
 
   // Start server
-  const PORT = 5000;
+  const PORT = process.env.NODE_ENV === 'development' ? 5001 : (process.env.PORT || 5000);
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
   });
