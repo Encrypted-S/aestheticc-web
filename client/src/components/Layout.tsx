@@ -21,39 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <img src="/aestheticc-logo-MAIN.png" alt="AestheticPost" className="h-full" />
           </Link>
           
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>Features</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="grid gap-3 p-6 w-[400px]">
-                    <div className="grid gap-3 p-4">
-                      <div className="grid gap-3 p-4">
-                        <Link href="/dashboard?tab=templates" className="block">
-                          <div className="flex flex-col space-y-1">
-                            <div className="text-sm font-medium">Templates</div>
-                            <div className="text-xs text-muted-foreground">Browse ready-to-use templates</div>
-                          </div>
-                        </Link>
-                        <Link href="/dashboard?tab=generate" className="block">
-                          <div className="flex flex-col space-y-1">
-                            <div className="text-sm font-medium">Content Generator</div>
-                            <div className="text-xs text-muted-foreground">Create AI-powered content</div>
-                          </div>
-                        </Link>
-                        <Link href="/dashboard?tab=calendar" className="block">
-                          <div className="flex flex-col space-y-1">
-                            <div className="text-sm font-medium">Calendar</div>
-                            <div className="text-xs text-muted-foreground">Schedule and manage posts</div>
-                          </div>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          
 
           <div className="space-x-4">
             {location === "/" ? (
