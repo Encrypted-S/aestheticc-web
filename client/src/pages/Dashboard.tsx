@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useRequireAuth } from "../lib/auth";
 import ContentGenerator from "../components/ContentGenerator";
@@ -12,24 +12,21 @@ import {
   LayoutTemplate, 
   Calendar, 
   BarChart,
-  Settings,
   LogOut,
-  ScrollText,
-  Users,
-  Award
+  ScrollText
 } from "lucide-react";
 
 export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
   const [location, setLocation] = useLocation();
-  const params = new URLSearchParams(window.location.search);
-  const currentTab = params.get("tab") || "generate";
-  
+  const [currentTab, setCurrentTab] = useState("generate");
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab") || "generate";
-    if (tab !== currentTab) {
-      setLocation(`/dashboard?tab=${tab}`);
+    // Parse the tab from the current location
+    const searchParams = new URLSearchParams(location.split("?")[1]);
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && tabFromUrl !== currentTab) {
+      setCurrentTab(tabFromUrl);
     }
   }, [location]);
 
@@ -45,7 +42,7 @@ export default function Dashboard() {
     );
   }
 
-  // If no user is found after loading completes, render nothing (useRequireAuth will handle redirect)
+  // If no user is found after loading completes, render nothing
   if (!user) {
     console.log("No user found in Dashboard, redirecting...");
     return null;
@@ -69,11 +66,12 @@ export default function Dashboard() {
   ];
 
   const handleTabChange = (tabId: string) => {
+    setCurrentTab(tabId);
     setLocation(`/dashboard?tab=${tabId}`);
   };
 
   const renderContent = () => {
-    console.log("Current tab:", currentTab);
+    console.log("Rendering tab:", currentTab);
     switch (currentTab) {
       case "generate":
         return <ContentGenerator />;
