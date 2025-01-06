@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useRequireAuth } from "../lib/auth";
 import ContentGenerator from "../components/ContentGenerator";
@@ -21,7 +22,7 @@ import {
 export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
   const [location, setLocation] = useLocation();
-  const params = new URLSearchParams(location.split("?")[1]);
+  const params = new URLSearchParams(window.location.search);
   const currentTab = params.get("tab") || "generate";
 
   // Show loading state while checking authentication
@@ -59,7 +60,12 @@ export default function Dashboard() {
     { id: "analytics", label: "Analytics", icon: <BarChart className="h-5 w-5" /> },
   ];
 
+  const handleTabChange = (tabId: string) => {
+    setLocation(`/dashboard?tab=${tabId}`);
+  };
+
   const renderContent = () => {
+    console.log("Current tab:", currentTab);
     switch (currentTab) {
       case "generate":
         return <ContentGenerator />;
@@ -94,7 +100,7 @@ export default function Dashboard() {
                   key={item.id}
                   variant={currentTab === item.id ? "secondary" : "ghost"}
                   className="w-full justify-start gap-3"
-                  onClick={() => setLocation(`/dashboard?tab=${item.id}`)}
+                  onClick={() => handleTabChange(item.id)}
                 >
                   {item.icon}
                   {item.label}
