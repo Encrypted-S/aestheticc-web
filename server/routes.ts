@@ -26,25 +26,19 @@ export function registerRoutes(router: express.Router) {
       isAuthenticated: req.isAuthenticated(),
       user: req.user,
       cookies: req.cookies,
-      headers: {
-        cookie: req.headers.cookie,
-        authorization: req.headers.authorization
-      }
+      session: req.session
     });
 
-    // Check if session exists and is valid
     if (!req.session) {
       console.error("No session found");
       return res.status(401).json({ error: "No session found" });
     }
 
-    // Verify authentication
     if (!req.isAuthenticated()) {
       console.error("User not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Verify user exists
     if (!req.user) {
       console.error("No user found in session");
       return res.status(401).json({ error: "No user found" });
@@ -52,6 +46,7 @@ export function registerRoutes(router: express.Router) {
 
     // Update session expiry
     req.session.touch();
+    req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
     // Force session save to ensure it's persisted
     req.session.save((err) => {
@@ -255,27 +250,42 @@ export function registerRoutes(router: express.Router) {
           })
           .returning();
 
-        // Update session handling
-        req.session.regenerate((err) => {
+        // Properly set up the session
+        req.session.regenerate(async (err) => {
           if (err) {
             console.error("Session regeneration failed:", err);
             return res.status(500).json({ error: "Login failed" });
           }
 
+          // Set user in session
           req.session.user = user;
-          req.session.save((err) => {
+          req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+          // Save session before login
+          await new Promise((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) {
+                console.error("Session save failed:", err);
+                reject(err);
+              }
+              resolve(null);
+            });
+          });
+
+          // Complete authentication
+          req.login(user, (err) => {
             if (err) {
-              console.error("Session save failed:", err);
+              console.error("Login failed:", err);
               return res.status(500).json({ error: "Login failed" });
             }
 
-            req.login(user, (err) => {
-              if (err) {
-                console.error("Login failed:", err);
-                return res.status(500).json({ error: "Login failed" });
-              }
-              res.json(user);
+            console.log("Dev login successful:", {
+              user,
+              sessionID: req.sessionID,
+              authenticated: req.isAuthenticated()
             });
+
+            res.json(user);
           });
         });
       } catch (error) {
