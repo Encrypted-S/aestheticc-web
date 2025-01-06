@@ -18,21 +18,146 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-11-20.acacia",
 });
 
-export function registerRoutes(router: express.Router) {
+export function registerRoutes(app: express.Router) {
   // Auth routes
-  router.get("/api/auth/user", (req, res) => {
+  app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-
-    if (!req.user) {
-      return res.status(401).json({ error: "No user found" });
-    }
-
     res.json(req.user);
   });
 
-  router.get("/api/auth/google", (req, res, next) => {
+  // Dev login route
+  if (process.env.NODE_ENV === "development") {
+    app.post("/api/auth/dev-login", async (req, res) => {
+      try {
+        const [user] = await db
+          .insert(users)
+          .values({
+            name: "Dev User",
+            email: "dev@example.com",
+            subscriptionStatus: "active",
+          })
+          .onConflictDoUpdate({
+            target: users.email,
+            set: {
+              name: "Dev User",
+              subscriptionStatus: "active",
+            },
+          })
+          .returning();
+
+        if (!user) {
+          throw new Error("Failed to create or update dev user");
+        }
+
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Login failed:", err);
+            return res.status(500).json({ error: "Login failed" });
+          }
+          res.json(user);
+        });
+      } catch (error) {
+        console.error("Dev login error:", error);
+        res.status(500).json({ error: "Login failed" });
+      }
+    });
+  }
+
+  // Content generation route
+  app.post("/api/generate-content", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { topic, treatmentCategory, contentType, platform, tone, additionalContext } = req.body;
+
+      await trackAnalyticsEvent({
+        userId: req.user.id,
+        eventType: "generate_content",
+        platform,
+        contentType,
+        metadata: { topic, treatmentCategory, tone }
+      });
+
+      const content = await generateContent({
+        topic,
+        treatmentCategory,
+        contentType,
+        platform,
+        tone,
+        additionalContext
+      });
+
+      res.json(content);
+    } catch (error) {
+      console.error("Content generation error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to generate content"
+      });
+    }
+  });
+
+  // Session logout route
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout(() => {
+      res.sendStatus(200);
+    });
+  });
+
+  // Templates routes
+  app.get("/api/templates", async (req, res) => {
+    try {
+      const allTemplates = await db.query.templates.findMany();
+      res.json(allTemplates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  // Analytics routes
+  app.post("/api/analytics/track", async (req, res) => {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { eventType, platform, contentType, metadata } = req.body;
+      await trackAnalyticsEvent({
+        userId: req.user.id,
+        eventType,
+        platform,
+        contentType,
+        metadata,
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Analytics tracking error:", error);
+      res.status(500).json({ error: "Failed to track analytics event" });
+    }
+  });
+
+  // Development routes for generating sample data
+  if (process.env.NODE_ENV === "development") {
+    app.post("/api/analytics/generate-sample", async (req, res) => {
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      try {
+        await generateSampleAnalytics(req.user.id);
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Sample data generation error:", error);
+        res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate sample data" });
+      }
+    });
+  }
+
+  // Google OAuth routes
+  app.get("/api/auth/google", (req, res, next) => {
     console.log("Starting Google OAuth flow:", {
       scopes: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
       headers: req.headers,
@@ -44,7 +169,7 @@ export function registerRoutes(router: express.Router) {
     })(req, res, next);
   });
 
-  router.get(
+  app.get(
     "/api/auth/google/callback",
     (req, res, next) => {
       console.log("Google OAuth callback received:", {
@@ -122,56 +247,8 @@ export function registerRoutes(router: express.Router) {
     }
   );
 
-  router.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.sendStatus(200);
-    });
-  });
-
-  // Development-only routes
-  if (process.env.NODE_ENV === "development") {
-    router.post("/api/auth/dev-login", async (req, res) => {
-      try {
-        const [user] = await db
-          .insert(users)
-          .values({
-            name: "Dev User",
-            email: "dev@example.com",
-          })
-          .onConflictDoUpdate({
-            target: users.email,
-            set: {
-              name: "Dev User",
-            },
-          })
-          .returning();
-
-        req.login(user, (err) => {
-          if (err) {
-            console.error("Login failed:", err);
-            return res.status(500).json({ error: "Login failed" });
-          }
-          res.json(user);
-        });
-      } catch (error) {
-        console.error("Dev login error:", error);
-        res.status(500).json({ error: "Login failed" });
-      }
-    });
-  }
-
-  // Templates routes
-  router.get("/api/templates", async (req, res) => {
-    try {
-      const allTemplates = await db.query.templates.findMany();
-      res.json(allTemplates);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch templates" });
-    }
-  });
-
-  // Posts routes
-  router.get("/api/posts/scheduled", async (req, res) => {
+    // Posts routes
+  app.get("/api/posts/scheduled", async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -187,7 +264,7 @@ export function registerRoutes(router: express.Router) {
   });
 
   // Subscription routes
-  router.post("/api/create-subscription", async (req, res) => {
+  app.post("/api/create-subscription", async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -213,84 +290,5 @@ export function registerRoutes(router: express.Router) {
     }
   });
 
-  // Analytics routes
-  router.post("/api/analytics/track", async (req, res) => {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const { eventType, platform, contentType, metadata } = req.body;
-      await trackAnalyticsEvent({
-        userId,
-        eventType,
-        platform,
-        contentType,
-        metadata,
-      });
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Analytics tracking error:", error);
-      res.status(500).json({ error: "Failed to track analytics event" });
-    }
-  });
-
-  // Development routes for generating sample data
-  if (process.env.NODE_ENV === "development") {
-    router.post("/api/analytics/generate-sample", async (req, res) => {
-      console.log("Received request to generate sample data");
-      const userId = req.user?.id;
-      if (!userId) {
-        console.log("No user ID found in request");
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      try {
-        console.log("Starting sample data generation for user:", userId);
-        await generateSampleAnalytics(userId);
-        console.log("Successfully generated sample data");
-        res.json({ success: true });
-      } catch (error) {
-        console.error("Sample data generation error:", error);
-        res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate sample data" });
-      }
-    });
-  }
-
-  // Content generation routes (from edited snippet)
-  router.post("/api/generate-content", async (req, res) => {
-    if (!req.user) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      const { topic, treatmentCategory, contentType, platform, tone, additionalContext } = req.body;
-
-      // Track content generation attempt
-      await trackAnalyticsEvent({
-        userId: req.user.id,
-        eventType: "generate_content",
-        platform,
-        contentType,
-        metadata: { topic, treatmentCategory, tone }
-      });
-
-      const content = await generateContent({
-        topic,
-        treatmentCategory,
-        contentType,
-        platform,
-        tone,
-        additionalContext
-      });
-
-      res.json(content);
-    } catch (error) {
-      console.error("Content generation error:", error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "Failed to generate content"
-      });
-    }
-  });
+  return app;
 }

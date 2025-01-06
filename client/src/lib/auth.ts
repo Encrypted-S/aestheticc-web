@@ -9,7 +9,6 @@ export type User = {
   name: string;
   avatarUrl?: string;
   subscriptionStatus: string;
-  // Added timestamp for session management
   lastLogin?: Date;
 };
 
@@ -25,50 +24,6 @@ export function useUser() {
   });
 }
 
-export function useRequireAuth() {
-  const { data: user, isLoading, error, refetch } = useUser();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        if (!isLoading) {
-          // Try to refetch user data if we don't have it
-          if (!user) {
-            await refetch();
-          }
-          
-          const response = await fetch("/api/auth/user", {
-            credentials: 'include' // Ensure cookies are sent
-          });
-          
-          if (!response.ok) {
-            throw new Error("Not authenticated");
-          }
-          
-          const userData = await response.json();
-          if (!userData) {
-            console.error("No user data found");
-            setLocation("/login");
-          }
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        setLocation("/login");
-      }
-    };
-
-    checkAuth();
-    
-    // Set up an interval to periodically refresh the session
-    const refreshInterval = setInterval(checkAuth, 5 * 60 * 1000); // Every 5 minutes
-    
-    return () => clearInterval(refreshInterval);
-  }, [isLoading, user, refetch, setLocation]);
-
-  return { user, isLoading };
-}
-
 export function useLogout() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -81,13 +36,31 @@ export function useLogout() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["user"], null);
-      setLocation("/");
+      setLocation("/login");
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
     },
   });
+}
+
+export function useRequireAuth() {
+  const { data: user, isLoading, error } = useUser();
+  const [, setLocation] = useLocation();
+  const logout = useLogout();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/login");
+    }
+  }, [isLoading, user, setLocation]);
+
+  return { 
+    user, 
+    isLoading,
+    logout: logout.mutate 
+  };
 }
 
 export function useGoogleLogin() {
