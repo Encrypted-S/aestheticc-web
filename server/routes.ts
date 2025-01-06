@@ -176,7 +176,7 @@ export function registerRoutes(router: express.Router) {
         state: req.query.state,
         code: req.query.code ? 'present' : 'missing'
       });
-      
+
       passport.authenticate("google", {
         failureRedirect: "/login?error=auth_failed",
         failureMessage: true,
@@ -191,7 +191,7 @@ export function registerRoutes(router: express.Router) {
           });
           return res.redirect('/login?error=auth_failed');
         }
-        
+
         console.log("Authentication successful, session state:", {
           sessionExists: !!req.session,
           isAuthenticated: req.isAuthenticated(),
@@ -205,7 +205,7 @@ export function registerRoutes(router: express.Router) {
             console.error("Session save error:", err);
             return res.redirect('/login?error=session_error');
           }
-          
+
           if (req.session) {
             req.session.touch(); // Update session expiry
           }
@@ -365,4 +365,40 @@ export function registerRoutes(router: express.Router) {
       }
     });
   }
+
+  // Content generation routes
+  router.post("/api/generate-content", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { topic, treatmentCategory, contentType, platform, tone, additionalContext } = req.body;
+
+      // Track content generation attempt
+      await trackAnalyticsEvent({
+        userId: req.user.id,
+        eventType: "generate_content",
+        platform,
+        contentType,
+        metadata: { topic, treatmentCategory, tone }
+      });
+
+      const content = await generateContent({
+        topic,
+        treatmentCategory,
+        contentType,
+        platform,
+        tone,
+        additionalContext
+      });
+
+      res.json(content);
+    } catch (error) {
+      console.error("Content generation error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to generate content"
+      });
+    }
+  });
 }
