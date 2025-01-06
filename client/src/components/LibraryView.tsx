@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ScrollText } from "lucide-react";
-import { ScheduledPost } from "../../db/schema";
+import { ScheduledPost } from "../../../db/schema";
 
 export default function LibraryView() {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
