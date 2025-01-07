@@ -1,7 +1,7 @@
 import express from "express";
 import passport from "passport";
 import { db } from "../db";
-import { users } from "@db/schema";
+import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
 
@@ -91,6 +91,52 @@ export function registerRoutes(app: express.Router) {
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Failed to generate content"
       });
+    }
+  });
+
+  // Posts routes
+  app.post("/api/posts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      console.log("Creating new post:", req.body);
+      const [post] = await db
+        .insert(scheduledPosts)
+        .values({
+          userId: req.user.id,
+          content: req.body.content,
+          platforms: req.body.platforms,
+          scheduledFor: new Date(req.body.scheduledFor),
+          published: false,
+        })
+        .returning();
+
+      console.log("Post created successfully:", post);
+      res.json(post);
+    } catch (error) {
+      console.error("Failed to create post:", error);
+      res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  // Get user's posts
+  app.get("/api/posts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const posts = await db.query.scheduledPosts.findMany({
+        where: eq(scheduledPosts.userId, req.user.id),
+        orderBy: (posts, { desc }) => [desc(posts.createdAt)],
+      });
+
+      res.json(posts);
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+      res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
 
