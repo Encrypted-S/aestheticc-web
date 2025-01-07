@@ -16,14 +16,23 @@ const crypto = {
     return `${buf.toString("hex")}.${salt}`;
   },
   compare: async (suppliedPassword: string, storedPassword: string) => {
-    const [hashedPassword, salt] = storedPassword.split(".");
-    const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
-    const suppliedPasswordBuf = (await scryptAsync(
-      suppliedPassword,
-      salt,
-      64
-    )) as Buffer;
-    return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+    try {
+      const [hashedPassword, salt] = storedPassword.split(".");
+      if (!hashedPassword || !salt) {
+        console.error("Invalid stored password format");
+        return false;
+      }
+      const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
+      const suppliedPasswordBuf = (await scryptAsync(
+        suppliedPassword,
+        salt,
+        64
+      )) as Buffer;
+      return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+    } catch (error) {
+      console.error("Password comparison error:", error);
+      return false;
+    }
   },
 };
 
@@ -77,6 +86,7 @@ export async function updateUserPassword(email: string, newPassword: string) {
   console.log("Updating password for user:", email);
   try {
     const hashedPassword = await crypto.hash(newPassword);
+    console.log("New hashed password generated");
 
     const [user] = await db
       .update(users)
@@ -85,6 +95,7 @@ export async function updateUserPassword(email: string, newPassword: string) {
       .returning();
 
     if (!user) {
+      console.error("No user found with email:", email);
       throw new Error("User not found");
     }
 
@@ -97,33 +108,32 @@ export async function updateUserPassword(email: string, newPassword: string) {
 }
 
 export async function validateLogin(email: string, password: string) {
-  console.log("Attempting to validate login for email:", email);
+  console.log("Validating login for email:", email);
 
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
 
   if (!user) {
-    console.log("Login failed: User not found with email:", email);
+    console.log("User not found:", email);
     throw new Error("Invalid email or password");
   }
 
   if (!user.password) {
-    console.log("Login failed: User has no password set");
+    console.log("No password set for user:", email);
     throw new Error("Invalid email or password");
   }
 
   const isValid = await crypto.compare(password, user.password);
   if (!isValid) {
-    console.log("Login failed: Password mismatch for user:", email);
+    console.log("Password validation failed for user:", email);
     throw new Error("Invalid email or password");
   }
 
-  console.log("Login successful for user:", email);
+  console.log("Login validation successful for user:", email);
   return user;
 }
 
-// Email login route with better error handling
 export function setupPassport() {
   console.log("Setting up Passport authentication");
 
@@ -156,6 +166,7 @@ export function setupPassport() {
           console.log("Password validation result:", isValid);
 
           if (!isValid) {
+            console.log("Password validation failed");
             return done(null, false, { message: "Invalid email or password" });
           }
 
