@@ -109,22 +109,44 @@ export function setupPassport() {
       {
         usernameField: "email",
         passwordField: "password",
+        passReqToCallback: false,
       },
       async (email, password, done) => {
         try {
-          const user = await validateLogin(email, password);
+          console.log("Attempting authentication for email:", email);
+
+          const user = await db.query.users.findFirst({
+            where: eq(users.email, email),
+          });
+
+          if (!user) {
+            console.log("User not found:", email);
+            return done(null, false, { message: "Invalid email or password" });
+          }
+
+          if (!user.password) {
+            console.log("No password set for user:", email);
+            return done(null, false, { message: "Invalid email or password" });
+          }
+
+          const isValid = await crypto.compare(password, user.password);
+          console.log("Password validation result:", isValid);
+
+          if (!isValid) {
+            return done(null, false, { message: "Invalid email or password" });
+          }
+
+          console.log("Authentication successful for user:", email);
           return done(null, user);
         } catch (error) {
           console.error("Authentication error:", error);
-          return done(null, false, { 
-            message: error instanceof Error ? error.message : "Authentication failed" 
-          });
+          return done(error);
         }
       }
     )
   );
 
-  passport.serializeUser((user: Express.User, done) => {
+  passport.serializeUser((user: any, done) => {
     console.log("Serializing user:", user.id);
     done(null, user.id);
   });

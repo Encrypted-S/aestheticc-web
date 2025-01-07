@@ -136,18 +136,38 @@ export function registerRoutes(app: express.Router) {
     }
   });
 
-  // Email login route with passport
-  app.post("/api/auth/email-login", passport.authenticate('local'), (req, res) => {
-    if (req.user && !req.user.emailVerified) {
-      generateVerificationToken(req.user.id)
-        .then(token => sendVerificationEmail(req.user.email, token))
-        .catch(error => console.error("Failed to send verification email:", error));
+  // Authentication routes section
+  app.post("/api/auth/email-login", async (req, res, next) => {
+    console.log("Login attempt for email:", req.body.email);
 
-      return res.status(403).json({ 
-        error: "Please verify your email address. A new verification email has been sent." 
+    passport.authenticate('local', (err, user, info) => {
+      if (err) {
+        console.error("Authentication error:", err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (!user) {
+        console.log("Login failed:", info?.message);
+        return res.status(401).json({ error: info?.message || "Login failed" });
+      }
+
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Login error:", loginErr);
+          return res.status(500).json({ error: "Login failed" });
+        }
+
+        if (user.emailVerified === false) {
+          console.log("User email not verified:", user.email);
+          return res.status(403).json({ 
+            error: "Please verify your email address" 
+          });
+        }
+
+        console.log("Login successful for user:", user.email);
+        res.json(user);
       });
-    }
-    res.json(req.user);
+    })(req, res, next);
   });
 
   // Get current user
