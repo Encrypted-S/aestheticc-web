@@ -58,7 +58,7 @@
 
   /* Add smooth transitions for theme changes */
   :root {
-    --transition-duration: 0.3s;
+    --transition-duration: 0.15s;
   }
 
   *, *::before, *::after {
