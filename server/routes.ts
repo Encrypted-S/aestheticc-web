@@ -19,6 +19,11 @@ export function registerRoutes(app: express.Router) {
     const { email, password } = req.body;
     console.log("Attempting email login for:", email);
 
+    // Add CORS headers for webview
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+
     // Check for the specific email and password
     if (email === "drshanemckeown@gmail.com" && password === "replpass") {
       try {
