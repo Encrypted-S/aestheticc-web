@@ -1,32 +1,42 @@
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { PlusCircle } from "lucide-react";
 
+interface Post {
+  id: string;
+  content: string;
+  platforms: string[];
+  scheduledFor?: string;
+}
+
 export default function ContentCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
   // Fetch all posts for scheduling
-  const { data: libraryPosts } = useQuery({
+  const { data: libraryPosts } = useQuery<Post[]>({
     queryKey: ["library-posts"],
     queryFn: async () => {
       const response = await fetch("/api/posts");
-      return response.json();
+      const data = await response.json();
+      return data;
     },
   });
 
   // Fetch scheduled posts
-  const { data: scheduledPosts, refetch: refetchScheduledPosts } = useQuery({
+  const { data: scheduledPosts } = useQuery<Post[]>({
     queryKey: ["scheduled-posts"],
     queryFn: async () => {
       const response = await fetch("/api/posts/scheduled");
-      return response.json();
+      const data = await response.json();
+      return data;
     },
   });
 
@@ -39,8 +49,8 @@ export default function ContentCalendar() {
   };
 
   const getPostsForDate = (date: Date) => {
-    return scheduledPosts?.filter((post: any) => {
-      const postDate = new Date(post.scheduledFor);
+    return scheduledPosts?.filter((post) => {
+      const postDate = new Date(post.scheduledFor!);
       return (
         postDate.getDate() === date.getDate() &&
         postDate.getMonth() === date.getMonth() &&
@@ -53,7 +63,14 @@ export default function ContentCalendar() {
     if (!selectedDate) return;
 
     try {
-      await fetch("/api/posts/schedule", {
+      // Optimistically update the UI
+      const postToSchedule = libraryPosts?.find(post => post.id === postId);
+      if (postToSchedule) {
+        const updatedPost = { ...postToSchedule, scheduledFor: selectedDate.toISOString() };
+        queryClient.setQueryData<Post[]>(["scheduled-posts"], (old = []) => [...old, updatedPost]);
+      }
+
+      const response = await fetch("/api/posts/schedule", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,11 +80,18 @@ export default function ContentCalendar() {
           scheduledFor: selectedDate.toISOString(),
         }),
       });
-      // Immediately refetch the scheduled posts to update the UI
-      await refetchScheduledPosts();
+
+      if (!response.ok) {
+        throw new Error("Failed to schedule post");
+      }
+
+      // Invalidate and refetch to ensure data consistency
+      await queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] });
       setIsSheetOpen(false);
     } catch (error) {
       console.error("Failed to schedule post:", error);
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] });
     }
   };
 
@@ -160,7 +184,7 @@ export default function ContentCalendar() {
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
             <div className="space-y-4 pr-4">
-              {libraryPosts?.map((post: any) => (
+              {libraryPosts?.map((post) => (
                 <Card key={post.id} className="cursor-pointer hover:border-rose-500 transition-colors">
                   <CardContent 
                     className="p-4"
