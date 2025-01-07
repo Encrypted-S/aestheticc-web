@@ -5,99 +5,67 @@ import { useToast } from "@/hooks/use-toast";
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.STRIPE_PUBLIC_KEY!);
 
-export function useSubscriptionStatus() {
+export function usePremiumStatus() {
   return useQuery({
-    queryKey: ["subscription"],
+    queryKey: ["premiumStatus"],
     queryFn: async () => {
-      const response = await fetch("/api/subscription/status");
-      if (!response.ok) throw new Error("Failed to fetch subscription status");
-      return response.json();
+      const response = await fetch("/api/user");
+      if (!response.ok) throw new Error("Failed to fetch user status");
+      const user = await response.json();
+      return user.isPremium || false;
     },
   });
 }
 
-export function useCreateSubscription() {
+export function usePurchasePremium() {
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/create-subscription", {
+      const response = await fetch("/api/create-checkout-session", {
         method: "POST",
       });
-      
+
       if (!response.ok) {
-        throw new Error("Failed to create subscription");
-      }
-      
-      const { sessionId } = await response.json();
-      const stripe = await stripePromise;
-      
-      if (!stripe) {
-        throw new Error("Stripe not initialized");
+        throw new Error("Failed to create checkout session");
       }
 
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-      if (error) {
-        throw error;
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-export function useManageSubscription() {
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/create-portal-session", {
-        method: "POST",
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to create portal session");
-      }
-      
       const { url } = await response.json();
       window.location.href = url;
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to open subscription management portal",
+        description: error instanceof Error ? error.message : "Failed to start checkout",
         variant: "destructive",
       });
     },
   });
 }
 
-export function useCheckSubscriptionStatus() {
+export function useVerifyPayment() {
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const response = await fetch(`/api/check-subscription-status?session_id=${sessionId}`);
+      const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
       if (!response.ok) {
-        throw new Error("Failed to verify subscription");
+        throw new Error("Failed to verify payment");
       }
       return response.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Subscription active",
-        description: "Your premium subscription is now active!",
-      });
+      if (data.status === "success") {
+        toast({
+          title: "Payment Successful",
+          description: "Thank you for purchasing premium access!",
+        });
+      }
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to verify subscription status",
+        description: error instanceof Error ? error.message : "Failed to verify payment",
         variant: "destructive",
       });
     },

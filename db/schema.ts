@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   subscriptionStatus: text("subscription_status").default("free"),
   stripeCustomerId: text("stripe_customer_id").unique(),
   emailVerified: boolean("email_verified").default(false),
+  isPremium: boolean("is_premium").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -3,9 +3,17 @@ import passport from "passport";
 import { db } from "../db";
 import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
+import Stripe from "stripe";
 import { generateContent } from "./services/openai";
 import { registerUser, setupPassport } from "./auth";
 import { generateVerificationToken, sendVerificationEmail, verifyEmail } from "./services/email-verification";
+
+// Initialize Stripe with secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2023-10-16",
+});
+
+const PREMIUM_PRICE = 2999; // $29.99 in cents
 
 export function registerRoutes(app: express.Router) {
   // Initialize passport
@@ -13,22 +21,92 @@ export function registerRoutes(app: express.Router) {
   app.use(passportMiddleware.initialize());
   app.use(passportMiddleware.session());
 
+  // Premium purchase endpoint
+  app.post("/api/create-checkout-session", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: "Premium Access",
+                description: "One-time purchase for premium features",
+              },
+              unit_amount: PREMIUM_PRICE,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.origin}/payment-cancelled`,
+        customer_email: req.user.email,
+        metadata: {
+          userId: req.user.id.toString(),
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Stripe session creation error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to create checkout session" 
+      });
+    }
+  });
+
+  // Verify payment status
+  app.get("/api/verify-payment", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const { session_id } = req.query;
+
+    if (!session_id || typeof session_id !== "string") {
+      return res.status(400).json({ error: "Invalid session ID" });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+
+      if (session.payment_status === "paid") {
+        // Update user's premium status in database
+        await db.update(users)
+          .set({ isPremium: true })
+          .where(eq(users.id, req.user.id));
+
+        return res.json({ status: "success" });
+      }
+
+      res.json({ status: session.payment_status });
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to verify payment" 
+      });
+    }
+  });
+
   // User registration
   app.post("/api/auth/register", async (req, res) => {
     try {
       const user = await registerUser(req.body);
       console.log("User registered successfully:", user.id);
 
-      // Generate and send verification email
       try {
         const verificationToken = await generateVerificationToken(user.id);
         await sendVerificationEmail(user.email, verificationToken);
       } catch (error) {
         console.error("Failed to send verification email:", error);
-        // Don't fail registration if email fails, but log it
       }
 
-      // Return success without logging in
       res.json({ 
         message: "Registration successful. Please check your email to verify your account.",
         requiresVerification: true
@@ -61,7 +139,6 @@ export function registerRoutes(app: express.Router) {
   // Email login route with passport
   app.post("/api/auth/email-login", passport.authenticate('local'), (req, res) => {
     if (req.user && !req.user.emailVerified) {
-      // If email is not verified, send a new verification email
       generateVerificationToken(req.user.id)
         .then(token => sendVerificationEmail(req.user.email, token))
         .catch(error => console.error("Failed to send verification email:", error));
@@ -94,7 +171,6 @@ export function registerRoutes(app: express.Router) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if email is verified
     if (!req.user?.emailVerified) {
       return res.status(403).json({ error: "Please verify your email address" });
     }
