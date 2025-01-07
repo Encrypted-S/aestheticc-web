@@ -17,6 +17,7 @@ export function registerRoutes(app: express.Router) {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const user = await registerUser(req.body);
+      console.log("User registered successfully:", user.id);
 
       // Generate and send verification email
       try {
@@ -27,16 +28,13 @@ export function registerRoutes(app: express.Router) {
         // Don't fail registration if email fails, but log it
       }
 
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ error: "Registration succeeded but login failed" });
-        }
-        res.json({ 
-          ...user, 
-          message: "Please check your email to verify your account" 
-        });
+      // Return success without logging in
+      res.json({ 
+        message: "Registration successful. Please check your email to verify your account.",
+        requiresVerification: true
       });
     } catch (error) {
+      console.error("Registration error:", error);
       res.status(400).json({ 
         error: error instanceof Error ? error.message : "Registration failed" 
       });
@@ -54,20 +52,7 @@ export function registerRoutes(app: express.Router) {
     const verified = await verifyEmail(token);
 
     if (verified) {
-      if (req.isAuthenticated() && req.user) {
-        // If user is logged in, refresh their session
-        const updatedUser = await db.query.users.findFirst({
-          where: eq(users.id, req.user.id),
-        });
-        if (updatedUser) {
-          req.login(updatedUser, (err) => {
-            if (err) {
-              console.error("Failed to refresh user session:", err);
-            }
-          });
-        }
-      }
-      res.redirect("/dashboard?verified=true");
+      res.redirect("/login?verified=true");
     } else {
       res.redirect("/login?error=verification_failed");
     }
