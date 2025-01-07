@@ -100,16 +100,9 @@ export function registerRoutes(app: express.Router) {
       const user = await registerUser(req.body);
       console.log("User registered successfully:", user.id);
 
-      try {
-        const verificationToken = await generateVerificationToken(user.id);
-        await sendVerificationEmail(user.email, verificationToken);
-      } catch (error) {
-        console.error("Failed to send verification email:", error);
-      }
-
       res.json({ 
-        message: "Registration successful. Please check your email to verify your account.",
-        requiresVerification: true
+        message: "Registration successful. You can now log in.",
+        requiresVerification: false
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -157,13 +150,7 @@ export function registerRoutes(app: express.Router) {
           return res.status(500).json({ error: "Login failed" });
         }
 
-        if (user.emailVerified === false) {
-          console.log("User email not verified:", user.email);
-          return res.status(403).json({ 
-            error: "Please verify your email address" 
-          });
-        }
-
+        // Removing email verification check
         console.log("Login successful for user:", user.email);
         res.json(user);
       });
