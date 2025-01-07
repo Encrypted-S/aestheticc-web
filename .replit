@@ -35,7 +35,6 @@ localPort = 5174
 externalPort = 4200
 
 [workflows]
-runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -81,7 +80,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "vite dev --host --port 5173"
+args = "vite dev --host"
 waitForPort = 5173
 
 [[workflows.workflow]]
