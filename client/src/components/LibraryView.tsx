@@ -1,8 +1,14 @@
-
 import { useEffect, useState } from "react";
 import { ScrollText, ArrowLeft } from "lucide-react";
 import { ScheduledPost } from "../../../db/schema";
 import { Button } from "./ui/button";
+
+interface PostContent {
+  mainText?: string;
+  text?: string;
+  imagePrompt?: string;
+  hashtags?: string | string[];
+}
 
 export default function LibraryView() {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
@@ -31,6 +37,8 @@ export default function LibraryView() {
   }
 
   if (selectedPost) {
+    const content = selectedPost.content as PostContent | string | undefined;
+
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -53,40 +61,38 @@ export default function LibraryView() {
             </span>
           </div>
           <div className="prose max-w-none space-y-6">
-            {typeof selectedPost.content === 'object' ? (
+            {typeof content === 'object' && content ? (
               <>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Main Content</h3>
                   <div className="text-sm whitespace-pre-wrap">
-                    {(selectedPost.content && ('mainText' in selectedPost.content || 'text' in selectedPost.content)) 
-                      ? (selectedPost.content.mainText || selectedPost.content.text || '')
-                      : ''}
+                    {String(content.mainText || content.text || '')}
                   </div>
                 </div>
-                
-                {selectedPost.content.imagePrompt && (
+
+                {content.imagePrompt && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Image Suggestion</h3>
                     <div className="text-sm italic">
-                      {selectedPost.content.imagePrompt}
+                      {content.imagePrompt}
                     </div>
                   </div>
                 )}
 
-                {selectedPost.content.hashtags && (
+                {content.hashtags && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Hashtags</h3>
                     <div className="text-sm text-primary">
-                      {Array.isArray(selectedPost.content.hashtags) 
-                        ? selectedPost.content.hashtags.join(' ')
-                        : selectedPost.content.hashtags}
+                      {Array.isArray(content.hashtags)
+                        ? content.hashtags.join(' ')
+                        : content.hashtags}
                     </div>
                   </div>
                 )}
               </>
             ) : (
               <div className="text-sm whitespace-pre-wrap">
-                {selectedPost.content || ''}
+                {String(content || '')}
               </div>
             )}
           </div>
