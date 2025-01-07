@@ -23,10 +23,18 @@ export const templates = pgTable("templates", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export type PostContent = {
+  mainText?: string;
+  text?: string;
+  hashtags?: string[] | string;
+  imagePrompt?: string;
+  disclaimer?: string;
+};
+
 export const scheduledPosts = pgTable("scheduled_posts", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   userId: integer("user_id").notNull(),
-  content: jsonb("content").notNull(),
+  content: jsonb("content").$type<PostContent>().notNull(),
   platforms: text("platforms").array().notNull(),
   scheduledFor: timestamp("scheduled_for").notNull(),
   published: boolean("published").default(false),
