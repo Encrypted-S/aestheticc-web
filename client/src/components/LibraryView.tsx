@@ -48,10 +48,12 @@ export default function LibraryView() {
                   </span>
                 </div>
                 <div>
-                  <p className="line-clamp-2 text-sm">
+                  <p className="line-clamp-3 text-sm whitespace-pre-wrap break-words">
                     {typeof post.content === 'string' 
                       ? post.content 
-                      : JSON.stringify(post.content)}
+                      : typeof post.content === 'object' && post.content.text 
+                        ? post.content.text
+                        : JSON.stringify(post.content, null, 2)}
                   </p>
                 </div>
               </div>
