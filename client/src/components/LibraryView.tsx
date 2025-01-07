@@ -53,11 +53,13 @@ export default function LibraryView() {
             </span>
           </div>
           <div className="prose max-w-none">
-            <pre className="whitespace-pre-wrap break-words text-sm">
+            <div className="text-sm">
               {typeof selectedPost.content === 'string'
                 ? selectedPost.content
-                : JSON.stringify(selectedPost.content, null, 2)}
-            </pre>
+                : typeof selectedPost.content === 'object' && selectedPost.content.text
+                ? selectedPost.content.text
+                : ''}
+            </div>
           </div>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <p>
