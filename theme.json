@@ -2,5 +2,8 @@
   "variant": "professional",
   "primary": "hsl(323, 100%, 77%)",
   "appearance": "light",
-  "radius": 0.75
+  "radius": 0.75,
+  "accentColor": "hsl(210, 40%, 96%)",
+  "borderColor": "hsl(214.3, 31.8%, 91.4%)",
+  "mutedColor": "hsl(215, 16%, 47%)"
 }
