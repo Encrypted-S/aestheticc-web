@@ -16,7 +16,8 @@ interface Post {
 
 export default function ContentCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isScheduleSheetOpen, setIsScheduleSheetOpen] = useState(false);
+  const [isDetailsSheetOpen, setIsDetailsSheetOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const queryClient = useQueryClient();
 
@@ -40,12 +41,16 @@ export default function ContentCalendar() {
     },
   });
 
-  const handleDateSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      setDate(selectedDate);
-      setSelectedDate(selectedDate);
-      setIsSheetOpen(true);
-    }
+  const handleScheduleClick = (selectedDate: Date) => {
+    setDate(selectedDate);
+    setSelectedDate(selectedDate);
+    setIsScheduleSheetOpen(true);
+  };
+
+  const handleDateClick = (selectedDate: Date) => {
+    setDate(selectedDate);
+    setSelectedDate(selectedDate);
+    setIsDetailsSheetOpen(true);
   };
 
   const getPostsForDate = (date: Date) => {
@@ -87,7 +92,7 @@ export default function ContentCalendar() {
 
       // Invalidate and refetch to ensure data consistency
       await queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] });
-      setIsSheetOpen(false);
+      setIsScheduleSheetOpen(false);
     } catch (error) {
       console.error("Failed to schedule post:", error);
       // Revert optimistic update on error
@@ -124,7 +129,7 @@ export default function ContentCalendar() {
         <Calendar
           mode="single"
           selected={date}
-          onSelect={handleDateSelect}
+          onSelect={undefined}
           className="rounded-lg border shadow-sm w-full bg-white p-4"
           classNames={{
             months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -153,7 +158,13 @@ export default function ContentCalendar() {
             Day: ({ date: dayDate, ...props }) => (
               <div className="relative w-full">
                 <button {...props} className="w-full h-full p-2 flex flex-col items-center group">
-                  <div className="flex flex-col items-center">
+                  <div 
+                    className="flex flex-col items-center cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDateClick(dayDate);
+                    }}
+                  >
                     <span className="mb-1">{dayDate.getDate()}</span>
                     {renderPostDots(dayDate)}
                   </div>
@@ -163,7 +174,7 @@ export default function ContentCalendar() {
                         className="w-8 h-8 text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDateSelect(dayDate);
+                          handleScheduleClick(dayDate);
                         }}
                       />
                     </div>
@@ -175,7 +186,8 @@ export default function ContentCalendar() {
         />
       </div>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      {/* Sheet for scheduling new posts */}
+      <Sheet open={isScheduleSheetOpen} onOpenChange={setIsScheduleSheetOpen}>
         <SheetContent className="w-[400px] sm:w-[540px]">
           <SheetHeader>
             <SheetTitle>
@@ -201,6 +213,38 @@ export default function ContentCalendar() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Sheet for viewing scheduled posts */}
+      <Sheet open={isDetailsSheetOpen} onOpenChange={setIsDetailsSheetOpen}>
+        <SheetContent className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle>
+              Scheduled Posts - {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
+            <div className="space-y-4 pr-4">
+              {selectedDate && getPostsForDate(selectedDate).map((post) => (
+                <Card key={post.id}>
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">
+                        Platforms: {Array.isArray(post.platforms) ? post.platforms.join(", ") : post.platforms}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {typeof post.content === 'string' ? post.content : JSON.stringify(post.content)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {selectedDate && getPostsForDate(selectedDate).length === 0 && (
+                <p className="text-center text-muted-foreground">No posts scheduled for this day</p>
+              )}
             </div>
           </ScrollArea>
         </SheetContent>
