@@ -6,11 +6,20 @@ export const users = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   email: text("email").unique().notNull(),
   name: text("name").notNull(),
-  password: text("password").notNull(), // Added password field
+  password: text("password").notNull(),
   googleId: text("google_id").unique(),
   avatarUrl: text("avatar_url"),
   subscriptionStatus: text("subscription_status").default("free"),
   stripeCustomerId: text("stripe_customer_id").unique(),
+  emailVerified: boolean("email_verified").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const verificationTokens = pgTable("verification_tokens", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -80,3 +89,8 @@ export const selectContentPerformanceSchema = createSelectSchema(contentPerforma
 
 export type AnalyticsEvent = z.infer<typeof selectAnalyticsEventSchema>;
 export type ContentPerformance = z.infer<typeof selectContentPerformanceSchema>;
+
+export const insertVerificationTokenSchema = createInsertSchema(verificationTokens);
+export const selectVerificationTokenSchema = createSelectSchema(verificationTokens);
+
+export type VerificationToken = z.infer<typeof selectVerificationTokenSchema>;

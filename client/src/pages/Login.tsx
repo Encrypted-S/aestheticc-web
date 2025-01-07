@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { useGoogleLogin } from "../lib/auth";
 import { useLocation } from "wouter";
 import { useState } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function Login() {
   const { startGoogleLogin } = useGoogleLogin();
@@ -11,11 +12,14 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const params = new URLSearchParams(location.split("?")[1]);
   const error = params.get("error");
+  const verified = params.get("verified");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     try {
       const endpoint = isRegistering ? "/api/auth/register" : "/api/auth/email-login";
       const body = isRegistering ? { email, password, name } : { email, password };
@@ -29,14 +33,20 @@ export default function Login() {
         credentials: "include",
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        window.location.href = "/dashboard";
+        if (isRegistering) {
+          setErrorMessage("Please check your email to verify your account");
+        } else {
+          window.location.href = "/dashboard";
+        }
       } else {
-        const data = await response.text();
-        console.error("Auth failed:", data);
+        setErrorMessage(data.error || "Authentication failed");
       }
     } catch (error) {
       console.error("Auth error:", error);
+      setErrorMessage("An unexpected error occurred");
     }
   };
 
@@ -54,9 +64,24 @@ export default function Login() {
           </p>
         </div>
 
-        {error === "auth_failed" && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md">
-            Authentication failed. Please try again.
+        {verified && (
+          <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-md flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5" />
+            Email verified successfully! You can now log in.
+          </div>
+        )}
+
+        {error === "verification_failed" && (
+          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Email verification failed. Please try again or request a new verification email.
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            {errorMessage}
           </div>
         )}
 
@@ -143,7 +168,6 @@ export default function Login() {
             </div>
           </Button>
 
-          {/* Development login button */}
           {import.meta.env.DEV && (
             <Button
               onClick={async () => {
