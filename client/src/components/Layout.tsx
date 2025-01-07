@@ -17,7 +17,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="h-8">
+          <Link href="/" className="h-12">
             <img src="/aestheticc-logo-MAIN.png" alt="AestheticPost" className="h-full" />
           </Link>
           
