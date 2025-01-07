@@ -93,6 +93,30 @@ export default function ContentGenerator() {
       }
 
       const result = await response.json();
+
+      // Save the generated content to the library
+      const saveResponse = await fetch("/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: {
+            text: result.mainText,
+            hashtags: result.hashtags,
+            imagePrompt: result.imagePrompt,
+            disclaimer: result.disclaimer
+          },
+          platforms: [data.platform],
+          scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to tomorrow
+        }),
+        credentials: "include",
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save content to library");
+      }
+
       setPreview(
         <div className="space-y-4">
           <div>
@@ -112,6 +136,11 @@ export default function ContentGenerator() {
           <div>
             <h4 className="font-semibold mb-2">Image Suggestion:</h4>
             <p className="italic">{result.imagePrompt}</p>
+          </div>
+          <div className="mt-4 p-4 bg-secondary rounded-lg">
+            <p className="text-sm text-secondary-foreground">
+              ✓ Content saved to library
+            </p>
           </div>
         </div>
       );
