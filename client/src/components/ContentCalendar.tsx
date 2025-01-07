@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { PlusCircle } from "lucide-react";
 
 export default function ContentCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -113,8 +114,8 @@ export default function ContentCalendar() {
             head_row: "flex w-full border-b border-border",
             head_cell: "text-muted-foreground w-full font-normal text-[0.8rem] h-14 flex items-center justify-center border-r border-border last:border-r-0",
             row: "flex w-full border-b border-border last:border-b-0",
-            cell: "relative h-14 w-full p-0 text-center text-sm focus-within:relative focus-within:z-20 border-r border-border last:border-r-0",
-            day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-none",
+            cell: "relative h-14 w-full p-0 text-center text-sm focus-within:relative focus-within:z-20 border-r border-border last:border-r-0 group",
+            day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-none flex flex-col items-center justify-center relative",
             day_range_end: "day-range-end",
             day_selected: "bg-rose-500 text-rose-50 hover:bg-rose-500 hover:text-rose-50 focus:bg-rose-500 focus:text-rose-50",
             day_today: "bg-accent text-accent-foreground",
@@ -126,9 +127,18 @@ export default function ContentCalendar() {
           components={{
             Day: ({ date: dayDate, ...props }) => (
               <div className="relative w-full">
-                <button {...props} className="w-full h-full p-2 flex flex-col items-center justify-center">
+                <button {...props} className="w-full h-full p-2 flex flex-col items-center justify-center group">
                   <span>{dayDate.getDate()}</span>
                   {renderPostDots(dayDate)}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <PlusCircle 
+                      className="w-8 h-8 text-rose-500 cursor-pointer hover:text-rose-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDateSelect(dayDate);
+                      }}
+                    />
+                  </div>
                 </button>
               </div>
             ),
