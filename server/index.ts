@@ -7,8 +7,6 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { getDb } from "../db";
-import { users } from "@db/schema";
-import { eq } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 
 const PgSession = ConnectPgSimple(session);
@@ -28,30 +26,38 @@ async function startServer() {
     app.use(express.json());
     app.use(cookieParser());
     app.use(cors({
-      origin: true,
+      origin: process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:5173' 
+        : process.env.APP_URL,
       credentials: true
     }));
 
     console.log("Setting up session store...");
     // Session configuration
-    const sessionStore = new PgSession({
-      conObject: {
-        connectionString: process.env.DATABASE_URL,
-      },
-      tableName: 'session'
-    });
-
-    app.use(session({
-      store: sessionStore,
+    const sessionConfig = {
+      store: new PgSession({
+        conObject: {
+          connectionString: process.env.DATABASE_URL,
+          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        },
+        tableName: 'session',
+        createTableIfMissing: true
+      }),
       secret: process.env.SESSION_SECRET || 'your-secret-key',
       resave: false,
       saveUninitialized: false,
       cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: false, // Set to false to allow non-HTTPS in development
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax'
       }
-    }));
+    };
+
+    if (process.env.NODE_ENV === 'production') {
+      app.set('trust proxy', 1); // trust first proxy
+    }
+
+    app.use(session(sessionConfig));
 
     console.log("Initializing Passport...");
     // Initialize Passport
@@ -77,6 +83,7 @@ async function startServer() {
       }
     });
 
+
     // Register routes
     console.log("Registering routes...");
     registerRoutes(app);
@@ -99,7 +106,7 @@ async function startServer() {
     }
 
     // Start server
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 3001;
     console.log(`Attempting to start server on port ${port}...`);
 
     await new Promise<void>((resolve, reject) => {

@@ -2,13 +2,17 @@ import jwt from "jsonwebtoken";
 import { db } from "../../db";
 import { verificationTokens, users } from "@db/schema";
 import { eq } from "drizzle-orm";
-import mailgunJs from "mailgun-js";
+import formData from "form-data";
+import Mailgun from "mailgun.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-jwt-secret";
-const mailgun = mailgunJs({
-  apiKey: process.env.MAILGUN_API_KEY!,
-  domain: process.env.MAILGUN_DOMAIN!
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY || ''
 });
+
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || '';
 
 export async function generateVerificationToken(userId: number): Promise<string> {
   const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '24h' });
@@ -26,22 +30,22 @@ export async function generateVerificationToken(userId: number): Promise<string>
 export async function sendVerificationEmail(email: string, token: string) {
   const verificationUrl = `${process.env.APP_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
 
-  const data = {
-    from: `Aesthetic Clinic CMS <noreply@${process.env.MAILGUN_DOMAIN}>`,
-    to: email,
-    subject: "Verify your email address",
-    html: `
-      <h1>Email Verification</h1>
-      <p>Welcome to Aesthetic Clinic CMS! Please click the link below to verify your email address:</p>
-      <a href="${verificationUrl}">${verificationUrl}</a>
-      <p>This link will expire in 24 hours.</p>
-      <p>If you didn't request this verification, please ignore this email.</p>
-    `,
-  };
-
   try {
-    await mailgun.messages().send(data);
-    console.log("Verification email sent successfully");
+    const result = await mg.messages.create(MAILGUN_DOMAIN, {
+      from: `Aesthetic Clinic CMS <noreply@${MAILGUN_DOMAIN}>`,
+      to: [email],
+      subject: "Verify your email address",
+      text: `Welcome to Aesthetic Clinic CMS! Please verify your email address by clicking: ${verificationUrl}`,
+      html: `
+        <h1>Email Verification</h1>
+        <p>Welcome to Aesthetic Clinic CMS! Please click the link below to verify your email address:</p>
+        <a href="${verificationUrl}">${verificationUrl}</a>
+        <p>This link will expire in 24 hours.</p>
+        <p>If you didn't request this verification, please ignore this email.</p>
+      `,
+    });
+
+    console.log("Verification email sent successfully:", result);
   } catch (error) {
     console.error("Failed to send verification email:", error);
     throw new Error("Failed to send verification email");

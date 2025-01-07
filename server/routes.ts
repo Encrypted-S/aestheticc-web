@@ -54,7 +54,7 @@ export function registerRoutes(app: express.Router) {
     const verified = await verifyEmail(token);
 
     if (verified) {
-      if (req.isAuthenticated()) {
+      if (req.isAuthenticated() && req.user) {
         // If user is logged in, refresh their session
         const updatedUser = await db.query.users.findFirst({
           where: eq(users.id, req.user.id),
@@ -75,7 +75,7 @@ export function registerRoutes(app: express.Router) {
 
   // Email login route with passport
   app.post("/api/auth/email-login", passport.authenticate('local'), (req, res) => {
-    if (!req.user.emailVerified) {
+    if (req.user && !req.user.emailVerified) {
       // If email is not verified, send a new verification email
       generateVerificationToken(req.user.id)
         .then(token => sendVerificationEmail(req.user.email, token))
@@ -110,7 +110,7 @@ export function registerRoutes(app: express.Router) {
     }
 
     // Check if email is verified
-    if (!req.user.emailVerified) {
+    if (!req.user?.emailVerified) {
       return res.status(403).json({ error: "Please verify your email address" });
     }
 
@@ -131,52 +131,6 @@ export function registerRoutes(app: express.Router) {
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Failed to generate content"
       });
-    }
-  });
-
-  // Posts routes
-  app.post("/api/posts", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      console.log("Creating new post:", req.body);
-      const [post] = await db
-        .insert(scheduledPosts)
-        .values({
-          userId: req.user.id,
-          content: req.body.content,
-          platforms: req.body.platforms,
-          scheduledFor: new Date(req.body.scheduledFor),
-          published: false,
-        })
-        .returning();
-
-      console.log("Post created successfully:", post);
-      res.json(post);
-    } catch (error) {
-      console.error("Failed to create post:", error);
-      res.status(500).json({ error: "Failed to create post" });
-    }
-  });
-
-  // Get user's posts
-  app.get("/api/posts", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      const posts = await db.query.scheduledPosts.findMany({
-        where: eq(scheduledPosts.userId, req.user.id),
-        orderBy: (posts, { desc }) => [desc(posts.createdAt)],
-      });
-
-      res.json(posts);
-    } catch (error) {
-      console.error("Failed to fetch posts:", error);
-      res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
 
