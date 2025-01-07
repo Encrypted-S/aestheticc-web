@@ -118,7 +118,7 @@ export default function ContentCalendar() {
             day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-none flex flex-col items-center justify-center relative",
             day_range_end: "day-range-end",
             day_selected: "bg-rose-500 text-rose-50 hover:bg-rose-500 hover:text-rose-50 focus:bg-rose-500 focus:text-rose-50",
-            day_today: "bg-accent text-accent-foreground",
+            day_today: "bg-muted/30 text-foreground font-medium",
             day_outside: "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
             day_disabled: "text-muted-foreground opacity-50",
             day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
@@ -130,9 +130,9 @@ export default function ContentCalendar() {
                 <button {...props} className="w-full h-full p-2 flex flex-col items-center justify-center group">
                   <span>{dayDate.getDate()}</span>
                   {renderPostDots(dayDate)}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <PlusCircle 
-                      className="w-8 h-8 text-rose-500 cursor-pointer hover:text-rose-600"
+                      className="w-8 h-8 text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDateSelect(dayDate);
