@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { ScrollText, ArrowLeft } from "lucide-react";
+import { ScrollText, ArrowLeft, Pencil, X, Check } from "lucide-react";
 import { ScheduledPost } from "../../../db/schema";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 
 interface PostContent {
   mainText?: string;
@@ -14,8 +16,14 @@ export default function LibraryView() {
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<PostContent | null>(null);
 
   useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = () => {
     fetch('/api/posts')
       .then(res => res.json())
       .then(data => {
@@ -26,7 +34,50 @@ export default function LibraryView() {
         console.error('Error fetching posts:', error);
         setIsLoading(false);
       });
-  }, []);
+  };
+
+  const handleEdit = (post: ScheduledPost) => {
+    setEditingPost(post.id);
+    const content = post.content as PostContent;
+    setEditedContent({
+      mainText: content.mainText || content.text || '',
+      imagePrompt: content.imagePrompt || '',
+      hashtags: content.hashtags || '',
+    });
+  };
+
+  const handleSave = async (postId: string) => {
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: editedContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update post');
+      }
+
+      // Update local state
+      setPosts(posts.map(post => 
+        post.id === postId 
+          ? { ...post, content: editedContent }
+          : post
+      ));
+
+      setEditingPost(null);
+      setEditedContent(null);
+    } catch (error) {
+      console.error('Error updating post:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingPost(null);
+    setEditedContent(null);
+  };
 
   if (isLoading) {
     return (
@@ -119,25 +170,78 @@ export default function LibraryView() {
         {posts.map((post) => (
           <div
             key={post.id}
-            className="group relative rounded-lg border p-4 hover:border-primary transition-colors cursor-pointer"
-            onClick={() => setSelectedPost(post)}
+            className="group relative rounded-lg border p-4 hover:border-primary transition-colors"
           >
             <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <ScrollText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {Array.isArray(post.platforms) ? post.platforms.join(", ") : post.platforms}
-                  </span>
+              <div className="space-y-2 w-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ScrollText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      {Array.isArray(post.platforms) ? post.platforms.join(", ") : post.platforms}
+                    </span>
+                  </div>
+                  {editingPost === post.id ? (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleSave(post.id)}
+                        className="h-8 w-8"
+                      >
+                        <Check className="h-4 w-4 text-green-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleCancel}
+                        className="h-8 w-8"
+                      >
+                        <X className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(post)}
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  <p className="line-clamp-3 text-sm whitespace-pre-wrap break-words">
-                    {typeof post.content === 'string'
-                      ? post.content
-                      : typeof post.content === 'object' && post.content
-                        ? JSON.stringify(post.content, null, 2)
-                        : ''}
-                  </p>
+                <div onClick={() => !editingPost && setSelectedPost(post)} className={editingPost === post.id ? "" : "cursor-pointer"}>
+                  {editingPost === post.id ? (
+                    <div className="space-y-3">
+                      <Textarea
+                        value={editedContent?.mainText}
+                        onChange={(e) => setEditedContent(prev => ({ ...prev!, mainText: e.target.value }))}
+                        placeholder="Main content"
+                        className="min-h-[100px] text-sm"
+                      />
+                      <Input
+                        value={editedContent?.imagePrompt}
+                        onChange={(e) => setEditedContent(prev => ({ ...prev!, imagePrompt: e.target.value }))}
+                        placeholder="Image prompt"
+                        className="text-sm"
+                      />
+                      <Input
+                        value={typeof editedContent?.hashtags === 'string' ? editedContent.hashtags : editedContent?.hashtags?.join(' ')}
+                        onChange={(e) => setEditedContent(prev => ({ ...prev!, hashtags: e.target.value }))}
+                        placeholder="Hashtags (space separated)"
+                        className="text-sm"
+                      />
+                    </div>
+                  ) : (
+                    <p className="line-clamp-3 text-sm whitespace-pre-wrap break-words">
+                      {typeof post.content === 'string'
+                        ? post.content
+                        : typeof post.content === 'object' && post.content
+                          ? (post.content as PostContent).mainText || (post.content as PostContent).text
+                          : ''}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
