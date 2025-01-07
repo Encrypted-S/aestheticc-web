@@ -7,19 +7,23 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { getDb } from "../db";
+import { users } from "@db/schema";
+import { eq } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
+import { sql } from 'drizzle-orm';
 
 const PgSession = ConnectPgSimple(session);
 
 async function startServer() {
   const app = express();
+  const db = await getDb();
 
   try {
     console.log("Initializing server...");
 
     // Test database connection first
     console.log("Testing database connection...");
-    const db = await getDb();
+    await db.execute(sql`SELECT 1`);
     console.log("Database connection successful");
 
     // Basic middleware
@@ -49,7 +53,7 @@ async function startServer() {
       cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        sameSite: 'lax' as const
       }
     };
 
@@ -82,7 +86,6 @@ async function startServer() {
         done(err);
       }
     });
-
 
     // Register routes
     console.log("Registering routes...");
