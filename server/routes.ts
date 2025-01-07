@@ -5,7 +5,7 @@ import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { generateContent } from "./services/openai";
-import { registerUser, setupPassport } from "./auth";
+import { registerUser, setupPassport, updateUserPassword } from "./auth";
 import { generateVerificationToken, sendVerificationEmail, verifyEmail } from "./services/email-verification";
 
 // Initialize Stripe with secret key
@@ -211,6 +211,22 @@ export function registerRoutes(app: express.Router) {
       console.error("Content generation error:", error);
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Failed to generate content"
+      });
+    }
+  });
+
+  // Add this route after the email verification endpoint
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const email = "drshanemckeown@gmail.com"; // Hardcoded for this specific fix
+      const password = "password123";
+
+      const user = await updateUserPassword(email, password);
+      res.json({ message: "Password reset successful" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to reset password" 
       });
     }
   });

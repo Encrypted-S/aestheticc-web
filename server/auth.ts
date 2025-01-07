@@ -73,6 +73,29 @@ export async function registerUser(userData: z.infer<typeof userSchema>) {
   }
 }
 
+export async function updateUserPassword(email: string, newPassword: string) {
+  console.log("Updating password for user:", email);
+  try {
+    const hashedPassword = await crypto.hash(newPassword);
+
+    const [user] = await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.email, email))
+      .returning();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    console.log("Password updated successfully for user:", email);
+    return user;
+  } catch (error) {
+    console.error("Error updating password:", error);
+    throw new Error("Failed to update password");
+  }
+}
+
 export async function validateLogin(email: string, password: string) {
   console.log("Attempting to validate login for email:", email);
 
