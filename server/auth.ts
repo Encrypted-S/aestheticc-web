@@ -74,26 +74,33 @@ export async function registerUser(userData: z.infer<typeof userSchema>) {
 }
 
 export async function validateLogin(email: string, password: string) {
-  console.log("Validating login for email:", email);
+  console.log("Attempting to validate login for email:", email);
+
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
 
-  if (!user || !user.password) {
-    console.log("Invalid credentials - user not found or no password");
-    throw new Error("Invalid credentials");
+  if (!user) {
+    console.log("Login failed: User not found with email:", email);
+    throw new Error("Invalid email or password");
+  }
+
+  if (!user.password) {
+    console.log("Login failed: User has no password set");
+    throw new Error("Invalid email or password");
   }
 
   const isValid = await crypto.compare(password, user.password);
   if (!isValid) {
-    console.log("Invalid credentials - password mismatch");
-    throw new Error("Invalid credentials");
+    console.log("Login failed: Password mismatch for user:", email);
+    throw new Error("Invalid email or password");
   }
 
-  console.log("Login validation successful for user ID:", user.id);
+  console.log("Login successful for user:", email);
   return user;
 }
 
+// Email login route with better error handling
 export function setupPassport() {
   console.log("Setting up Passport authentication");
 
@@ -108,14 +115,15 @@ export function setupPassport() {
           const user = await validateLogin(email, password);
           return done(null, user);
         } catch (error) {
-          return done(null, false, { message: error instanceof Error ? error.message : "Login failed" });
+          console.error("Authentication error:", error);
+          return done(null, false, { 
+            message: error instanceof Error ? error.message : "Authentication failed" 
+          });
         }
       }
     )
   );
 
-  // These serialization functions are not used during registration
-  // They are only used for maintaining session after successful login
   passport.serializeUser((user: Express.User, done) => {
     console.log("Serializing user:", user.id);
     done(null, user.id);
