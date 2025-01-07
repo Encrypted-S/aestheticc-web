@@ -1,5 +1,6 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import ws from "ws";
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { sql } from 'drizzle-orm';
 import * as schema from "@db/schema";
 
 if (!process.env.DATABASE_URL) {
@@ -8,20 +9,19 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Create the SQL client
+const sql_client = neon(process.env.DATABASE_URL);
+const db = drizzle(sql_client, { schema });
+
 // Test database connection before proceeding
-async function testConnection() {
+export async function testConnection() {
   try {
     console.log("Testing database connection...");
-    const db = drizzle({
-      connection: process.env.DATABASE_URL,
-      schema,
-      ws: ws,
-    });
 
     // Try to execute a simple query to test the connection
-    await db.execute(sql`SELECT 1`);
-    console.log("Database connection successful");
-    return db;
+    const result = await db.execute(sql`SELECT 1`);
+    console.log("Database connection successful", result);
+    return true;
   } catch (error) {
     console.error("Database connection error:", error);
     throw error;
@@ -30,12 +30,9 @@ async function testConnection() {
 
 // Export an async function to get the database instance
 export async function getDb() {
-  return await testConnection();
+  await testConnection();
+  return db;
 }
 
-// For backward compatibility
-export const db = drizzle({
-  connection: process.env.DATABASE_URL,
-  schema,
-  ws: ws,
-});
+// Export the db instance for direct use
+export { db };

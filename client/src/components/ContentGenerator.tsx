@@ -164,6 +164,15 @@ export default function ContentGenerator() {
     } catch (error) {
       console.error(error);
       setIsSaved(false);
+      // Show error state
+      setPreview(prev => (
+        <div>
+          {prev}
+          <div className="mt-4 p-4 border border-destructive rounded bg-destructive/10 text-destructive">
+            Failed to save content. Please try again.
+          </div>
+        </div>
+      ));
     } finally {
       setIsSaving(false);
     }
