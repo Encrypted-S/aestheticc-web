@@ -58,7 +58,9 @@ export default function LibraryView() {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Main Content</h3>
                   <div className="text-sm whitespace-pre-wrap">
-                    {selectedPost.content.mainText || selectedPost.content.text || ''}
+                    {(selectedPost.content && ('mainText' in selectedPost.content || 'text' in selectedPost.content)) 
+                      ? (selectedPost.content.mainText || selectedPost.content.text || '')
+                      : ''}
                   </div>
                 </div>
                 
