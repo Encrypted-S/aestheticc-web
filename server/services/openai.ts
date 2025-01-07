@@ -60,7 +60,6 @@ Additional Context: ${additionalContext}
 Include:
 1. Main content text
 2. Relevant hashtags
-3. Image suggestion that complies with medical advertising guidelines
 
 Keep the content professional, compliant with medical advertising standards, and engaging.`;
 
@@ -108,7 +107,8 @@ Keep the content professional, compliant with medical advertising standards, and
       .slice(0, 7) || [];
 
     // Generate image prompt based on content type
-    const imagePrompt = `Professional, high-quality ${contentType === 'beforeAfter' ? 'before and after' : ''} photo for ${topic} in an aesthetic clinic setting. The image should be clean, modern, and medical-grade while remaining approachable and aesthetic. Focus on ${treatmentCategory} treatment visualization.`;
+    const baseImagePrompt = `Professional, high-quality ${contentType === 'beforeAfter' ? 'before and after' : ''} photo for ${topic} in an aesthetic clinic setting.`;
+    const imagePrompt = `${baseImagePrompt} The image should be clean, modern, and medical-grade while remaining approachable and aesthetic. Focus on ${treatmentCategory} treatment visualization.`;
 
     // Generate medical disclaimer
     const disclaimer = generateMedicalDisclaimer(treatmentCategory);
@@ -116,7 +116,7 @@ Keep the content professional, compliant with medical advertising standards, and
     return {
       mainText: content,
       hashtags,
-      imagePrompt,
+      imagePrompt: `[OPENAI] ${imagePrompt}`,
       disclaimer,
     };
   } catch (error) {
