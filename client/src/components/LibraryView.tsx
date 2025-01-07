@@ -52,14 +52,41 @@ export default function LibraryView() {
               {Array.isArray(selectedPost.platforms) ? selectedPost.platforms.join(", ") : selectedPost.platforms}
             </span>
           </div>
-          <div className="prose max-w-none">
-            <div className="text-sm">
-              {typeof selectedPost.content === 'string'
-                ? selectedPost.content
-                : typeof selectedPost.content === 'object' && selectedPost.content.text
-                ? selectedPost.content.text
-                : ''}
-            </div>
+          <div className="prose max-w-none space-y-6">
+            {typeof selectedPost.content === 'object' ? (
+              <>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Main Content</h3>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {selectedPost.content.mainText || selectedPost.content.text || ''}
+                  </div>
+                </div>
+                
+                {selectedPost.content.imagePrompt && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Image Suggestion</h3>
+                    <div className="text-sm italic">
+                      {selectedPost.content.imagePrompt}
+                    </div>
+                  </div>
+                )}
+
+                {selectedPost.content.hashtags && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Hashtags</h3>
+                    <div className="text-sm text-primary">
+                      {Array.isArray(selectedPost.content.hashtags) 
+                        ? selectedPost.content.hashtags.join(' ')
+                        : selectedPost.content.hashtags}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-sm whitespace-pre-wrap">
+                {selectedPost.content || ''}
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <p>
