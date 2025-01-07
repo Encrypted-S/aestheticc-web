@@ -90,7 +90,7 @@ export async function generateSampleAnalytics(userId: number) {
           content: {
             text: `Sample ${contentType} post ${i + 1}`,
             hashtags: [`#${contentType}`, '#aestheticsclinic', '#beauty'],
-            type: contentType,
+            mainText: `Sample ${contentType} content`,
           },
           platforms: platforms.slice(0, Math.floor(Math.random() * 3) + 2), // At least 2 platforms
           scheduledFor: randomDate(thirtyDaysAgo, now),

@@ -99,12 +99,12 @@ async function startServer() {
     }
 
     // Start server
-    const PORT = process.env.NODE_ENV === 'development' ? 5001 : (process.env.PORT || 5000);
-    console.log(`Attempting to start server on port ${PORT}...`);
+    const port = process.env.PORT || 3000;
+    console.log(`Attempting to start server on port ${port}...`);
 
     await new Promise<void>((resolve, reject) => {
-      server.listen(Number(PORT), "0.0.0.0", () => {
-        console.log(`Server running on port ${PORT}`);
+      server.listen(Number(port), "0.0.0.0", () => {
+        console.log(`Server running on port ${port}`);
         resolve();
       });
 
