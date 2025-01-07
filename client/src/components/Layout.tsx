@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -12,16 +13,17 @@ import {
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="h-12">
-            <img src="/aestheticc-logo-MAIN.png" alt="AestheticPost" className="h-full" />
-          </Link>
-          
-          
+          <div className="flex items-center gap-4">
+            <Link href="/" className="h-12">
+              <img src="/aestheticc-logo-MAIN.png" alt="AestheticPost" className="h-full" />
+            </Link>
+            <ThemeToggle />
+          </div>
 
           <div className="space-x-4">
             {location === "/" ? (
