@@ -130,7 +130,7 @@ export default function ContentCalendar() {
                 <button {...props} className="w-full h-full p-2 flex flex-col items-center group">
                   <span className="mb-1">{dayDate.getDate()}</span>
                   {renderPostDots(dayDate)}
-                  <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <PlusCircle 
                       className="w-8 h-8 text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
                       onClick={(e) => {
