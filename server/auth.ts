@@ -36,7 +36,7 @@ const userSchema = z.object({
 
 export async function registerUser(userData: z.infer<typeof userSchema>) {
   const validatedData = userSchema.parse(userData);
-  
+
   // Check if user already exists
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, validatedData.email),
@@ -48,7 +48,7 @@ export async function registerUser(userData: z.infer<typeof userSchema>) {
 
   // Hash password and create user
   const hashedPassword = await crypto.hash(validatedData.password);
-  
+
   const [user] = await db
     .insert(users)
     .values({
@@ -56,6 +56,7 @@ export async function registerUser(userData: z.infer<typeof userSchema>) {
       name: validatedData.name,
       password: hashedPassword,
       subscriptionStatus: "free",
+      emailVerified: false
     })
     .returning();
 
@@ -98,16 +99,25 @@ export function setupPassport() {
   );
 
   passport.serializeUser((user: Express.User, done) => {
+    console.log("Serializing user:", user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("Deserializing user:", id);
       const user = await db.query.users.findFirst({
         where: eq(users.id, id),
       });
+
+      if (!user) {
+        console.error("User not found during deserialization:", id);
+        return done(new Error("User not found"), null);
+      }
+
       done(null, user);
     } catch (error) {
+      console.error("Deserialization error:", error);
       done(error);
     }
   });
