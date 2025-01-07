@@ -63,6 +63,7 @@ export default function ContentCalendar() {
           scheduledFor: selectedDate.toISOString(),
         }),
       });
+      // Immediately refetch the scheduled posts to update the UI
       await refetchScheduledPosts();
       setIsSheetOpen(false);
     } catch (error) {
