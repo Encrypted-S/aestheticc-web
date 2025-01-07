@@ -114,8 +114,8 @@ export default function ContentCalendar() {
             head_row: "flex w-full border-b border-border",
             head_cell: "text-muted-foreground w-full font-normal text-[0.8rem] h-14 flex items-center justify-center border-r border-border last:border-r-0",
             row: "flex w-full border-b border-border last:border-b-0",
-            cell: "relative h-14 w-full p-0 text-center text-sm focus-within:relative focus-within:z-20 border-r border-border last:border-r-0 group",
-            day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-none flex flex-col items-center justify-center relative",
+            cell: "relative h-24 w-full p-0 text-center text-sm focus-within:relative focus-within:z-20 border-r border-border last:border-r-0 group",
+            day: "h-24 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-none flex flex-col items-center justify-start pt-2 relative",
             day_range_end: "day-range-end",
             day_selected: "bg-rose-500 text-rose-50 hover:bg-rose-500 hover:text-rose-50 focus:bg-rose-500 focus:text-rose-50",
             day_today: "bg-muted/30 text-foreground font-medium",
@@ -127,10 +127,10 @@ export default function ContentCalendar() {
           components={{
             Day: ({ date: dayDate, ...props }) => (
               <div className="relative w-full">
-                <button {...props} className="w-full h-full p-2 flex flex-col items-center justify-center group">
-                  <span>{dayDate.getDate()}</span>
+                <button {...props} className="w-full h-full p-2 flex flex-col items-center group">
+                  <span className="mb-1">{dayDate.getDate()}</span>
                   {renderPostDots(dayDate)}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <PlusCircle 
                       className="w-8 h-8 text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
                       onClick={(e) => {
