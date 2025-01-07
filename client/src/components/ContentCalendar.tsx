@@ -71,17 +71,17 @@ export default function ContentCalendar() {
 
   const renderPostDots = (day: Date) => {
     const posts = getPostsForDate(day);
-    const maxDots = 3; // Reduced from 4 to match design
+    const maxDots = 3;
     const dotsToShow = Math.min(posts.length, maxDots);
 
     if (dotsToShow === 0) return null;
 
     return (
-      <div className="flex gap-0.5 mt-0.5 justify-center">
+      <div className="flex gap-0.5 mt-1 justify-center">
         {Array.from({ length: dotsToShow }).map((_, i) => (
           <div
             key={i}
-            className="h-1 w-1 rounded-full bg-rose-500" // Using rose-500 to match the pink dots in the design
+            className="h-1 w-1 rounded-full bg-rose-500"
           />
         ))}
       </div>
@@ -99,24 +99,24 @@ export default function ContentCalendar() {
           mode="single"
           selected={date}
           onSelect={handleDateSelect}
-          className="rounded-lg border shadow-sm w-full bg-white"
+          className="rounded-lg border shadow-sm w-full bg-white p-4"
           classNames={{
             months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-            month: "space-y-4 w-full",
-            caption: "flex justify-center pt-1 relative items-center mb-4",
+            month: "space-y-6 w-full",
+            caption: "flex justify-center pt-1 relative items-center mb-6",
             caption_label: "text-base font-medium",
             nav: "space-x-1 flex items-center",
             nav_button: "h-7 w-7 bg-transparent p-0 hover:opacity-100",
             nav_button_previous: "absolute left-1",
             nav_button_next: "absolute right-1",
-            table: "w-full border-collapse space-y-1",
-            head_row: "flex w-full",
-            head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem] h-10 flex items-center justify-center",
-            row: "flex w-full mt-0",
-            cell: "relative h-10 w-full p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-            day: "h-10 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-md",
+            table: "w-full border-collapse",
+            head_row: "flex w-full border-b border-border",
+            head_cell: "text-muted-foreground w-full font-normal text-[0.8rem] h-14 flex items-center justify-center border-r border-border last:border-r-0",
+            row: "flex w-full border-b border-border last:border-b-0",
+            cell: "relative h-14 w-full p-0 text-center text-sm focus-within:relative focus-within:z-20 border-r border-border last:border-r-0",
+            day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent rounded-none",
             day_range_end: "day-range-end",
-            day_selected: "bg-rose-500 text-rose-50 hover:bg-rose-500 hover:text-rose-50 focus:bg-rose-500 focus:text-rose-50 rounded-md",
+            day_selected: "bg-rose-500 text-rose-50 hover:bg-rose-500 hover:text-rose-50 focus:bg-rose-500 focus:text-rose-50",
             day_today: "bg-accent text-accent-foreground",
             day_outside: "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
             day_disabled: "text-muted-foreground opacity-50",
