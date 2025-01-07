@@ -35,52 +35,68 @@ const userSchema = z.object({
 });
 
 export async function registerUser(userData: z.infer<typeof userSchema>) {
+  console.log("Starting user registration process");
   const validatedData = userSchema.parse(userData);
 
   // Check if user already exists
+  console.log("Checking for existing user with email:", validatedData.email);
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, validatedData.email),
   });
 
   if (existingUser) {
+    console.log("User already exists with email:", validatedData.email);
     throw new Error("User already exists");
   }
 
-  // Hash password and create user
-  const hashedPassword = await crypto.hash(validatedData.password);
+  try {
+    // Hash password and create user
+    console.log("Creating new user with email:", validatedData.email);
+    const hashedPassword = await crypto.hash(validatedData.password);
 
-  const [user] = await db
-    .insert(users)
-    .values({
-      email: validatedData.email,
-      name: validatedData.name,
-      password: hashedPassword,
-      subscriptionStatus: "free",
-      emailVerified: false
-    })
-    .returning();
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: validatedData.email,
+        name: validatedData.name,
+        password: hashedPassword,
+        subscriptionStatus: "free",
+        emailVerified: false,
+      })
+      .returning();
 
-  return user;
+    console.log("User created successfully with ID:", user.id);
+    return user;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw new Error("Failed to create user");
+  }
 }
 
 export async function validateLogin(email: string, password: string) {
+  console.log("Validating login for email:", email);
   const user = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
 
   if (!user || !user.password) {
+    console.log("Invalid credentials - user not found or no password");
     throw new Error("Invalid credentials");
   }
 
   const isValid = await crypto.compare(password, user.password);
   if (!isValid) {
+    console.log("Invalid credentials - password mismatch");
     throw new Error("Invalid credentials");
   }
 
+  console.log("Login validation successful for user ID:", user.id);
   return user;
 }
 
 export function setupPassport() {
+  console.log("Setting up Passport authentication");
+
   passport.use(
     new LocalStrategy(
       {
@@ -98,6 +114,8 @@ export function setupPassport() {
     )
   );
 
+  // These serialization functions are not used during registration
+  // They are only used for maintaining session after successful login
   passport.serializeUser((user: Express.User, done) => {
     console.log("Serializing user:", user.id);
     done(null, user.id);
@@ -112,13 +130,14 @@ export function setupPassport() {
 
       if (!user) {
         console.error("User not found during deserialization:", id);
-        return done(new Error("User not found"), null);
+        return done(null, null);
       }
 
+      console.log("User deserialized successfully:", user.id);
       done(null, user);
     } catch (error) {
       console.error("Deserialization error:", error);
-      done(error);
+      done(error, null);
     }
   });
 
