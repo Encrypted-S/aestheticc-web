@@ -7,30 +7,36 @@ import { useState } from "react";
 export default function Login() {
   const { startGoogleLogin } = useGoogleLogin();
   const [location] = useLocation();
-  const params = new URLSearchParams(location.split("?")[1]);
-  const error = params.get("error");
+  const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const params = new URLSearchParams(location.split("?")[1]);
+  const error = params.get("error");
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/auth/email-login", {
+      const endpoint = isRegistering ? "/api/auth/register" : "/api/auth/email-login";
+      const body = isRegistering ? { email, password, name } : { email, password };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
         credentials: "include",
       });
 
       if (response.ok) {
         window.location.href = "/dashboard";
       } else {
-        console.error("Login failed");
+        const data = await response.text();
+        console.error("Auth failed:", data);
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Auth error:", error);
     }
   };
 
@@ -38,9 +44,13 @@ export default function Login() {
     <div className="container mx-auto px-4 py-20">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {isRegistering ? "Create Account" : "Welcome Back"}
+          </h1>
           <p className="text-muted-foreground">
-            Sign in to access your content dashboard
+            {isRegistering
+              ? "Sign up to start managing your content"
+              : "Sign in to access your content dashboard"}
           </p>
         </div>
 
@@ -51,8 +61,18 @@ export default function Login() {
         )}
 
         <div className="space-y-6">
-          {/* Email Login Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isRegistering && (
+              <div>
+                <Input
+                  type="text"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <div>
               <Input
                 type="email"
@@ -72,9 +92,20 @@ export default function Login() {
               />
             </div>
             <Button type="submit" className="w-full">
-              Sign in with Email
+              {isRegistering ? "Create Account" : "Sign in with Email"}
             </Button>
           </form>
+
+          <div className="text-center">
+            <button
+              onClick={() => setIsRegistering(!isRegistering)}
+              className="text-sm text-primary hover:underline"
+            >
+              {isRegistering
+                ? "Already have an account? Sign in"
+                : "Don't have an account? Sign up"}
+            </button>
+          </div>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
