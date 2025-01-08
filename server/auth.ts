@@ -61,10 +61,10 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          // Handle Google-authenticated users without passwords
-          if (user.google_id && !user.password) {
-            console.log("Google-authenticated user attempting password login:", email);
-            return done(null, false, { message: "Please use Google Sign In" });
+          // Handle users without passwords or undefined password
+          if (!user.password) {
+            console.log("User without password attempting login:", email);
+            return done(null, false, { message: "Invalid email or password" });
           }
 
           const isValid = await crypto.compare(password, user.password);
