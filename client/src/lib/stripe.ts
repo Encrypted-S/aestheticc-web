@@ -12,7 +12,12 @@ export function usePremiumStatus() {
       const response = await fetch("/api/user", {
         credentials: "include"
       });
-      if (!response.ok) throw new Error("Failed to fetch user status");
+
+      if (!response.ok) {
+        if (response.status === 401) return false;
+        throw new Error("Failed to fetch user status");
+      }
+
       const user = await response.json();
       return user.isPremium || false;
     },
@@ -34,7 +39,7 @@ export function usePurchasePremium() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create checkout session");
+        throw new Error(error.error || "Failed to create checkout session");
       }
 
       const { url } = await response.json();
@@ -57,10 +62,14 @@ export function useVerifyPayment() {
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+      const response = await fetch(`/api/verify-payment?session_id=${sessionId}`, {
+        credentials: "include"
+      });
+
       if (!response.ok) {
         throw new Error("Failed to verify payment");
       }
+
       return response.json();
     },
     onSuccess: (data) => {
