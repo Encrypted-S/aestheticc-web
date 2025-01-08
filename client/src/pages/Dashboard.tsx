@@ -6,7 +6,6 @@ import TemplateLibrary from "../components/TemplateLibrary";
 import ContentCalendar from "../components/ContentCalendar";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import LibraryView from "../components/LibraryView";
-import { PremiumPurchase } from "../components/PremiumPurchase";
 import { Button } from "@/components/ui/button";
 import { 
   PenLine, 
@@ -14,8 +13,7 @@ import {
   Calendar, 
   BarChart,
   LogOut,
-  ScrollText,
-  Crown
+  ScrollText
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -24,6 +22,7 @@ export default function Dashboard() {
   const [currentTab, setCurrentTab] = useState("generate");
 
   useEffect(() => {
+    // Parse the tab from the current location
     const searchParams = new URLSearchParams(location.split("?")[1]);
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== currentTab) {
@@ -31,6 +30,7 @@ export default function Dashboard() {
     }
   }, [location]);
 
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -42,6 +42,7 @@ export default function Dashboard() {
     );
   }
 
+  // If no user is found after loading completes, render nothing
   if (!user) {
     console.log("No user found in Dashboard, redirecting...");
     return null;
@@ -62,7 +63,6 @@ export default function Dashboard() {
     { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-5 w-5" /> },
     { id: "calendar", label: "Calendar", icon: <Calendar className="h-5 w-5" /> },
     { id: "analytics", label: "Analytics", icon: <BarChart className="h-5 w-5" /> },
-    { id: "premium", label: "Premium", icon: <Crown className="h-5 w-5" /> },
   ];
 
   const handleTabChange = (tabId: string) => {
@@ -83,8 +83,6 @@ export default function Dashboard() {
         return <ContentCalendar />;
       case "analytics":
         return <AnalyticsDashboard />;
-      case "premium":
-        return <PremiumPurchase />;
       default:
         return <ContentGenerator />;
     }
@@ -92,12 +90,15 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-background">
+      {/* Sidebar */}
       <div className="w-64 border-r bg-card">
         <div className="h-full flex flex-col">
+          {/* User section */}
           <div className="p-4 border-b">
             <h2 className="font-semibold truncate">Welcome, {user.name}</h2>
           </div>
 
+          {/* Main navigation */}
           <nav className="flex-1 p-4">
             <div className="space-y-2">
               {menuItems.map((item) => (
@@ -114,6 +115,7 @@ export default function Dashboard() {
             </div>
           </nav>
 
+          {/* Bottom section */}
           <div className="p-4 border-t">
             <Button
               variant="ghost"
@@ -127,6 +129,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Main content */}
       <div className="flex-1 overflow-auto">
         <div className="p-8">
           {renderContent()}
