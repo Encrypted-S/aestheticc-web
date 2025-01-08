@@ -18,6 +18,7 @@ export function useUser() {
     queryKey: ["user"],
     queryFn: async () => {
       try {
+        console.log("Fetching user data...");
         const response = await fetch("/api/user", {
           credentials: "include",
           headers: {
@@ -25,6 +26,8 @@ export function useUser() {
             "Accept": "application/json"
           }
         });
+
+        console.log("User data response status:", response.status);
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -34,6 +37,8 @@ export function useUser() {
         }
 
         const data = await response.json();
+        console.log("User data received:", data);
+
         if (!data.success || !data.user) {
           return null;
         }
@@ -45,8 +50,9 @@ export function useUser() {
     },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    retry: false,
-    staleTime: 1000 * 60 * 5 // 5 minutes
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retryDelay: 1000 // Wait 1 second between retries
   });
 
   return query;
@@ -97,6 +103,13 @@ export function useRequireAuth() {
   const logout = useLogout();
 
   useEffect(() => {
+    console.log("useRequireAuth effect running:", { 
+      isLoading, 
+      user: user ? "present" : "absent", 
+      error: error ? "present" : "absent" 
+    });
+
+    // Only redirect if we're not loading and there's no user
     if (!isLoading && !user && !error) {
       console.log("No authenticated user found, redirecting to login");
       setLocation("/login");

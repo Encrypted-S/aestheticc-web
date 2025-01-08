@@ -4,10 +4,11 @@ import { useGoogleLogin } from "../lib/auth";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
   const { startGoogleLogin } = useGoogleLogin();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +17,7 @@ export default function Login() {
   const params = new URLSearchParams(location.split("?")[1]);
   const error = params.get("error");
   const verified = params.get("verified");
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +59,10 @@ export default function Login() {
         setErrorMessage("Account created successfully! You can now log in.");
         setIsRegistering(false);
       } else {
-        window.location.href = "/dashboard";
+        // Invalidate and refetch user data before redirect
+        await queryClient.invalidateQueries({ queryKey: ["user"] });
+        await queryClient.fetchQuery({ queryKey: ["user"] });
+        setLocation("/dashboard");
       }
     } catch (error) {
       console.error("Auth error:", error);
