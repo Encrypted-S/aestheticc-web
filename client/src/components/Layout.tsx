@@ -12,7 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { HomeIcon, CrownIcon } from "lucide-react";
+import { HomeIcon } from "lucide-react";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -61,14 +61,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <Link href="/" className="flex items-center gap-2">
                       <HomeIcon className="h-4 w-4" />
                       <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location === "/premium"} tooltip="Upgrade to Premium">
-                    <Link href="/premium" className="flex items-center gap-2">
-                      <CrownIcon className="h-4 w-4" />
-                      <span>Upgrade to Premium</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
