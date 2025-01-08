@@ -80,15 +80,19 @@ export function registerRoutes(app: express.Express) {
   app.post("/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
+        console.error("Authentication error:", err);
         return res.status(500).json({ error: "Authentication error" });
       }
       if (!user) {
+        console.log("Login failed:", info?.message);
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
       req.login(user, (err) => {
         if (err) {
+          console.error("Login error:", err);
           return res.status(500).json({ error: "Login error" });
         }
+        console.log("User logged in successfully:", user.email);
         return res.json({ user });
       });
     })(req, res, next);

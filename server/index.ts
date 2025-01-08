@@ -50,10 +50,10 @@ async function startServer() {
         createTableIfMissing: true
       }),
       secret: process.env.SESSION_SECRET || 'your-secret-key',
-      resave: false,
-      saveUninitialized: false,
+      resave: true,
+      saveUninitialized: true,
       cookie: {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 1000 * 60 * 60 * 24, // 24 hours
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax' as const,
         httpOnly: true
