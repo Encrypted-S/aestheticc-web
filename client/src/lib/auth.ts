@@ -83,11 +83,8 @@ export function useGoogleLogin() {
 
   const startGoogleLogin = async () => {
     try {
-      toast({
-        title: "Not implemented",
-        description: "Google login is not available at this time",
-        variant: "destructive",
-      });
+      // Redirect to Google OAuth route
+      window.location.href = "/auth/google";
     } catch (error) {
       toast({
         title: "Login failed",

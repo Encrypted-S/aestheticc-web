@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { users } from "@db/schema";
@@ -41,6 +42,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Local Strategy
   passport.use(
     new LocalStrategy(
       {
@@ -74,6 +76,50 @@ export function setupAuth(app: Express) {
       }
     )
   );
+
+  // Google Strategy
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: "/auth/google/callback",
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            console.log("Google auth callback for profile:", profile.id);
+            let user = await db.query.users.findFirst({
+              where: eq(users.google_id, profile.id),
+            });
+
+            if (!user) {
+              console.log("Creating new user from Google profile");
+              const [newUser] = await db
+                .insert(users)
+                .values({
+                  email: profile.emails?.[0]?.value || "",
+                  name: profile.displayName,
+                  google_id: profile.id,
+                  avatar_url: profile.photos?.[0]?.value,
+                  password: await crypto.hash(randomBytes(32).toString("hex")),
+                  email_verified: true,
+                })
+                .returning();
+              user = newUser;
+            }
+
+            return done(null, user);
+          } catch (error) {
+            console.error("Google authentication error:", error);
+            return done(error as Error);
+          }
+        }
+      )
+    );
+  } else {
+    console.warn("Google OAuth credentials not found, Google login will be disabled");
+  }
 
   passport.serializeUser((user: any, done) => {
     console.log("Serializing user:", user.id);

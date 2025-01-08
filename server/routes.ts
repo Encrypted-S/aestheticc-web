@@ -25,6 +25,19 @@ export function registerRoutes(app: express.Express) {
   // Initialize authentication middleware
   setupAuth(app);
 
+  // Google OAuth routes
+  app.get("/auth/google", passport.authenticate("google", {
+    scope: ["profile", "email"],
+  }));
+
+  app.get(
+    "/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    (req, res) => {
+      res.redirect("/dashboard");
+    }
+  );
+
   // Basic authentication routes
   app.post("/register", async (req, res) => {
     try {
