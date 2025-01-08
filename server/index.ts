@@ -6,8 +6,8 @@ import { setupVite, serveStatic } from "./vite";
 const app = express();
 const server = createServer(app);
 
-// Parse PORT as number to ensure proper binding
-const PORT = parseInt(process.env.PORT || (process.env.NODE_ENV === 'production' ? '80' : '3001'), 10);
+// Use the PORT provided by the environment, default to 3000 if not specified
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 async function main() {
   try {
