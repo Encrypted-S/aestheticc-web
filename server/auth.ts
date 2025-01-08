@@ -20,18 +20,24 @@ const crypto = {
   },
   compare: async (suppliedPassword: string, storedPassword: string) => {
     try {
+      console.log("Starting password comparison");
       const [hashedPassword, salt] = storedPassword.split(".");
+
       if (!hashedPassword || !salt) {
-        console.error("Invalid stored password format");
+        console.error("Invalid stored password format:", { hashedPassword: !!hashedPassword, salt: !!salt });
         return false;
       }
+
       const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
       const suppliedPasswordBuf = (await scryptAsync(
         suppliedPassword,
         salt,
         64
       )) as Buffer;
-      return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+
+      const isMatch = timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+      console.log("Password comparison completed. Match:", isMatch);
+      return isMatch;
     } catch (error) {
       console.error("Password comparison error:", error);
       return false;
@@ -65,11 +71,11 @@ export function setupAuth(app: Express) {
       {
         usernameField: "email",
         passwordField: "password",
-        passReqToCallback: true,
       },
-      async (req, email, password, done) => {
+      async (email, password, done) => {
         try {
-          console.log("Attempting authentication for email:", email);
+          console.log("Local strategy authentication for email:", email);
+
           const user = await db.query.users.findFirst({
             where: eq(users.email, email),
           });
@@ -79,29 +85,22 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          console.log("Found user:", { id: user.id, email: user.email, hasPassword: !!user.password });
+          console.log("User found:", { id: user.id, email: user.email });
 
-          // Handle users without passwords or undefined password
           if (!user.password) {
-            console.log("User without password attempting login:", email);
+            console.log("User has no password set:", email);
             return done(null, false, { message: "Invalid email or password" });
           }
 
           const isValid = await crypto.compare(password, user.password);
+          console.log("Password validation result:", isValid);
+
           if (!isValid) {
             console.log("Invalid password for user:", email);
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          console.log("Authentication successful for user:", email, "with id:", user.id);
-
-          if (req.session) {
-            req.session.save((err) => {
-              if (err) console.error("Session save error:", err);
-              else console.log("Session saved successfully");
-            });
-          }
-
+          console.log("Authentication successful for user:", email);
           return done(null, user);
         } catch (error) {
           console.error("Authentication error:", error);
@@ -110,66 +109,6 @@ export function setupAuth(app: Express) {
       }
     )
   );
-
-  // Google Strategy
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    passport.use(
-      new GoogleStrategy(
-        {
-          clientID: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: "/auth/google/callback",
-        },
-        async (accessToken, refreshToken, profile, done) => {
-          try {
-            console.log("Google auth callback for profile:", profile.id);
-            let user = await db.query.users.findFirst({
-              where: eq(users.googleId, profile.id),
-            });
-
-            if (!user) {
-              user = await db.query.users.findFirst({
-                where: eq(users.email, profile.emails?.[0]?.value || ""),
-              });
-
-              if (user) {
-                const [updatedUser] = await db
-                  .update(users)
-                  .set({
-                    googleId: profile.id,
-                    avatarUrl: profile.photos?.[0]?.value,
-                    emailVerified: true,
-                  })
-                  .where(eq(users.id, user.id))
-                  .returning();
-                user = updatedUser;
-              } else {
-                const [newUser] = await db
-                  .insert(users)
-                  .values({
-                    email: profile.emails?.[0]?.value || "",
-                    name: profile.displayName,
-                    googleId: profile.id,
-                    avatarUrl: profile.photos?.[0]?.value,
-                    password: await crypto.hash(randomBytes(32).toString("hex")),
-                    emailVerified: true,
-                  })
-                  .returning();
-                user = newUser;
-              }
-            }
-
-            return done(null, user);
-          } catch (error) {
-            console.error("Google authentication error:", error);
-            return done(error as Error);
-          }
-        }
-      )
-    );
-  } else {
-    console.warn("Google OAuth credentials not found, Google login will be disabled");
-  }
 
   passport.serializeUser((user: any, done) => {
     console.log("Serializing user:", user.id);
@@ -188,8 +127,6 @@ export function setupAuth(app: Express) {
       done(error, null);
     }
   });
-
-  return passport;
 }
 
 export { crypto };

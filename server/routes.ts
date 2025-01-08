@@ -43,12 +43,15 @@ export function registerRoutes(app: express.Express) {
     try {
       const { email, password, name } = req.body;
 
+      console.log("Registration attempt for email:", email);
+
       // Check if user already exists
       const existingUser = await db.query.users.findFirst({
         where: eq(users.email, email),
       });
 
       if (existingUser) {
+        console.log("Registration failed - user exists:", email);
         return res.status(400).json({ error: "User already exists" });
       }
 
@@ -56,6 +59,7 @@ export function registerRoutes(app: express.Express) {
       const salt = randomBytes(16).toString('hex');
       const hashedPassword = (await scryptAsync(password, salt, 64)).toString('hex') + '.' + salt;
 
+      console.log("Creating new user with email:", email);
       const [user] = await db
         .insert(users)
         .values({
@@ -65,8 +69,11 @@ export function registerRoutes(app: express.Express) {
         })
         .returning();
 
+      console.log("User created successfully:", { id: user.id, email: user.email });
+
       req.login(user, (err) => {
         if (err) {
+          console.error("Login after registration failed:", err);
           return res.status(500).json({ error: "Error logging in after registration" });
         }
         return res.json({ user });
@@ -78,31 +85,47 @@ export function registerRoutes(app: express.Express) {
   });
 
   app.post("/login", (req, res, next) => {
+    console.log("Login attempt received for email:", req.body.email);
+
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
         console.error("Authentication error:", err);
         return res.status(500).json({ error: "Authentication error" });
       }
+
       if (!user) {
         console.log("Login failed:", info?.message);
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
+
       req.login(user, (err) => {
         if (err) {
-          console.error("Login error:", err);
+          console.error("Session creation error:", err);
           return res.status(500).json({ error: "Login error" });
         }
-        console.log("User logged in successfully:", user.email);
-        return res.json({ user });
+
+        console.log("User logged in successfully:", { id: user.id, email: user.email });
+        return res.json({ 
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          }
+        });
       });
     })(req, res, next);
   });
 
   app.post("/logout", (req, res) => {
+    const userEmail = (req.user as any)?.email;
+    console.log("Logout attempt for user:", userEmail);
+
     req.logout((err) => {
       if (err) {
+        console.error("Logout error:", err);
         return res.status(500).json({ error: "Logout failed" });
       }
+      console.log("User logged out successfully:", userEmail);
       res.json({ message: "Logged out successfully" });
     });
   });
