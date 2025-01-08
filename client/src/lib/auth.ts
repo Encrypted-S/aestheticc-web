@@ -16,16 +16,19 @@ export function useUser() {
     queryFn: async () => {
       try {
         const response = await fetch("/api/user", {
-          credentials: "include"
+          credentials: "include",
+          headers: {
+            "Cache-Control": "no-cache"
+          }
         });
 
         if (!response.ok) {
-          console.error("User fetch failed:", response.status, response.statusText);
           if (response.status === 401) return null;
           throw new Error("Failed to fetch user data");
         }
 
-        return response.json();
+        const data = await response.json();
+        return data.user || null;
       } catch (error) {
         console.error("Error fetching user:", error);
         return null;
