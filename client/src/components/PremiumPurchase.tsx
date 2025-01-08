@@ -1,9 +1,8 @@
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./ui/card";
-import { usePurchasePremium } from "@/lib/stripe";
 
 export function PremiumPurchase() {
-  const { mutate: purchasePremium, isPending } = usePurchasePremium();
+  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/aEU5mLa9bfTn2k0146";
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -25,11 +24,10 @@ export function PremiumPurchase() {
       </CardContent>
       <CardFooter>
         <Button 
-          onClick={() => purchasePremium()} 
-          disabled={isPending}
+          onClick={() => window.open(STRIPE_PAYMENT_LINK, '_blank')}
           className="w-full"
         >
-          {isPending ? "Processing..." : "Purchase Premium"}
+          Upgrade Now
         </Button>
       </CardFooter>
     </Card>

@@ -7,7 +7,6 @@ import ContentCalendar from "../components/ContentCalendar";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import LibraryView from "../components/LibraryView";
 import { Button } from "@/components/ui/button";
-import { usePurchasePremium } from "@/lib/stripe";
 import { 
   PenLine, 
   LayoutTemplate, 
@@ -17,16 +16,14 @@ import {
   ScrollText,
   Sparkles
 } from "lucide-react";
-import cn from 'classnames';
 
 export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
   const [location, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("generate");
-  const { mutate: purchasePremium, isLoading: isPurchaseLoading } = usePurchasePremium();
+  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/aEU5mLa9bfTn2k0146";
 
   useEffect(() => {
-    // Parse the tab from the current location
     const searchParams = new URLSearchParams(location.split("?")[1]);
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== currentTab) {
@@ -34,7 +31,6 @@ export default function Dashboard() {
     }
   }, [location]);
 
-  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -46,7 +42,6 @@ export default function Dashboard() {
     );
   }
 
-  // If no user is found after loading completes, render nothing
   if (!user) {
     console.log("No user found in Dashboard, redirecting...");
     return null;
@@ -75,6 +70,10 @@ export default function Dashboard() {
   ];
 
   const handleTabChange = (tabId: string) => {
+    if (tabId === "pro") {
+      window.open(STRIPE_PAYMENT_LINK, '_blank');
+      return;
+    }
     setCurrentTab(tabId);
     setLocation(`/dashboard?tab=${tabId}`);
   };
@@ -117,10 +116,9 @@ export default function Dashboard() {
               <Button 
                 className="w-full bg-gradient-to-r from-orange-500 to-purple-600 text-white hover:from-orange-600 hover:to-purple-700"
                 size="lg"
-                onClick={() => purchasePremium()}
-                disabled={isPurchaseLoading}
+                onClick={() => window.open(STRIPE_PAYMENT_LINK, '_blank')}
               >
-                {isPurchaseLoading ? "Processing..." : "Upgrade Now"}
+                Upgrade Now
               </Button>
             </div>
           </div>
