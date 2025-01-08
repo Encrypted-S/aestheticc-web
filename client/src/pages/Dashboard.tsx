@@ -6,6 +6,7 @@ import TemplateLibrary from "../components/TemplateLibrary";
 import ContentCalendar from "../components/ContentCalendar";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import LibraryView from "../components/LibraryView";
+import { PremiumPurchase } from "../components/PremiumPurchase";
 import { Button } from "@/components/ui/button";
 import { 
   PenLine, 
@@ -21,7 +22,6 @@ export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
   const [location, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("generate");
-  const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/aEU5mLa9bfTn2k0146";
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.split("?")[1]);
@@ -70,10 +70,6 @@ export default function Dashboard() {
   ];
 
   const handleTabChange = (tabId: string) => {
-    if (tabId === "pro") {
-      window.open(STRIPE_PAYMENT_LINK, '_blank');
-      return;
-    }
     setCurrentTab(tabId);
     setLocation(`/dashboard?tab=${tabId}`);
   };
@@ -92,37 +88,7 @@ export default function Dashboard() {
       case "analytics":
         return <AnalyticsDashboard />;
       case "pro":
-        return (
-          <div className="max-w-4xl mx-auto space-y-8">
-            <h1 className="text-3xl font-bold text-center">Upgrade to Pro</h1>
-            <div className="grid gap-8 p-6 border rounded-lg bg-card">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold">Premium Features</h2>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-orange-500" />
-                    <span>Advanced AI content generation</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-purple-500" />
-                    <span>Unlimited social media posts</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-pink-500" />
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-              </div>
-              <Button 
-                className="w-full bg-gradient-to-r from-orange-500 to-purple-600 text-white hover:from-orange-600 hover:to-purple-700"
-                size="lg"
-                onClick={() => window.open(STRIPE_PAYMENT_LINK, '_blank')}
-              >
-                Upgrade Now
-              </Button>
-            </div>
-          </div>
-        );
+        return <PremiumPurchase />;
       default:
         return <ContentGenerator />;
     }
