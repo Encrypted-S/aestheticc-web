@@ -6,6 +6,7 @@ import { users } from "@db/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import type { Express } from "express";
 
 const scryptAsync = promisify(scrypt);
 
@@ -134,20 +135,22 @@ export async function validateLogin(email: string, password: string) {
   return user;
 }
 
-export function setupPassport() {
-  console.log("Setting up Passport authentication");
+export function setupAuth(app: Express) {
+  console.log("Setting up authentication...");
+
+  // Initialize Passport
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   passport.use(
     new LocalStrategy(
       {
         usernameField: "email",
         passwordField: "password",
-        passReqToCallback: false,
       },
       async (email, password, done) => {
         try {
           console.log("Attempting authentication for email:", email);
-
           const user = await db.query.users.findFirst({
             where: eq(users.email, email),
           });
@@ -157,16 +160,9 @@ export function setupPassport() {
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          if (!user.password) {
-            console.log("No password set for user:", email);
-            return done(null, false, { message: "Invalid email or password" });
-          }
-
           const isValid = await crypto.compare(password, user.password);
-          console.log("Password validation result:", isValid);
-
           if (!isValid) {
-            console.log("Password validation failed");
+            console.log("Invalid password for user:", email);
             return done(null, false, { message: "Invalid email or password" });
           }
 
@@ -191,13 +187,6 @@ export function setupPassport() {
       const user = await db.query.users.findFirst({
         where: eq(users.id, id),
       });
-
-      if (!user) {
-        console.error("User not found during deserialization:", id);
-        return done(null, null);
-      }
-
-      console.log("User deserialized successfully:", user.id);
       done(null, user);
     } catch (error) {
       console.error("Deserialization error:", error);
@@ -205,5 +194,102 @@ export function setupPassport() {
     }
   });
 
-  return passport;
+  // Authentication routes
+  app.post("/api/register", async (req, res) => {
+    try {
+      const { email, password, name } = req.body;
+
+      // Check if user already exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await crypto.hash(password);
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          email,
+          name,
+          password: hashedPassword,
+        })
+        .returning();
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ error: "Error logging in after registration" });
+        }
+        return res.json({ user });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        return res.status(500).json({ error: "Authentication error" });
+      }
+      if (!user) {
+        return res.status(401).json({ error: info.message || "Invalid credentials" });
+      }
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ error: "Login error" });
+        }
+        return res.json({ user });
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
+
+  // Development login route (only available in development)
+  if (process.env.NODE_ENV === "development") {
+    app.post("/api/dev-login", async (req, res) => {
+      try {
+        const [user] = await db
+          .select()
+          .from(users)
+          .limit(1);
+
+        if (!user) {
+          return res.status(404).json({ error: "No users found" });
+        }
+
+        req.login(user, (err) => {
+          if (err) {
+            return res.status(500).json({ error: "Login error" });
+          }
+          return res.json({ user });
+        });
+      } catch (error) {
+        console.error("Dev login error:", error);
+        res.status(500).json({ error: "Dev login failed" });
+      }
+    });
+  }
 }

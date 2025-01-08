@@ -11,6 +11,7 @@ import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { sql } from 'drizzle-orm';
+import { setupAuth } from "./auth";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -30,9 +31,9 @@ async function startServer() {
     app.use(express.json());
     app.use(cookieParser());
 
-    // Updated CORS configuration
+    // CORS configuration
     app.use(cors({
-      origin: ['http://localhost:5173', 'http://localhost:3002'],
+      origin: ['http://localhost:5173', 'http://localhost:3002', process.env.REPLIT_ORIGIN || 'https://localhost:3002'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
@@ -54,7 +55,7 @@ async function startServer() {
       saveUninitialized: false,
       cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: false, // Set to false in development
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax' as const,
         httpOnly: true
       }
@@ -62,19 +63,9 @@ async function startServer() {
 
     app.use(session(sessionConfig));
 
-    console.log("Initializing Passport...");
-    app.use(passport.initialize());
-    app.use(passport.session());
-
-    // Register routes
-    console.log("Registering routes...");
-    registerRoutes(app);
-
-    // Error handling middleware
-    app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-      console.error('Error:', err);
-      res.status(500).json({ error: err.message || "Internal server error" });
-    });
+    // Initialize authentication
+    console.log("Setting up authentication...");
+    setupAuth(app);
 
     // Setup Vite or static files
     const server = createServer(app);
@@ -91,16 +82,8 @@ async function startServer() {
     const port = process.env.PORT || 3002;
     console.log(`Attempting to start server on port ${port}...`);
 
-    await new Promise<void>((resolve, reject) => {
-      server.listen(Number(port), "0.0.0.0", () => {
-        console.log(`Server running on port ${port}`);
-        resolve();
-      });
-
-      server.on('error', (error) => {
-        console.error("Server startup error:", error);
-        reject(error);
-      });
+    server.listen(Number(port), "0.0.0.0", () => {
+      console.log(`Server running on port ${port}`);
     });
 
     return server;
