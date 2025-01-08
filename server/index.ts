@@ -4,14 +4,13 @@ import passport from "passport";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
-import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { getDb } from "../db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 import ConnectPgSimple from "connect-pg-simple";
 import { sql } from 'drizzle-orm';
-import { setupAuth } from "./auth";
+import { registerRoutes } from "./routes";
 
 const PgSession = ConnectPgSimple(session);
 
@@ -39,8 +38,8 @@ async function startServer() {
       allowedHeaders: ['Content-Type', 'Authorization'],
     }));
 
-    console.log("Setting up session store...");
     // Session configuration
+    console.log("Setting up session store...");
     const sessionConfig = {
       store: new PgSession({
         conObject: {
@@ -63,9 +62,13 @@ async function startServer() {
 
     app.use(session(sessionConfig));
 
-    // Initialize authentication
-    console.log("Setting up authentication...");
-    setupAuth(app);
+    // Initialize passport and session
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // Register routes
+    console.log("Setting up routes...");
+    registerRoutes(app);
 
     // Setup Vite or static files
     const server = createServer(app);
@@ -80,7 +83,7 @@ async function startServer() {
 
     // Start server
     const port = process.env.PORT || 3002;
-    console.log(`Attempting to start server on port ${port}...`);
+    console.log(`Starting server on port ${port}...`);
 
     server.listen(Number(port), "0.0.0.0", () => {
       console.log(`Server running on port ${port}`);

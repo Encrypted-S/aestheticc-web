@@ -4,122 +4,101 @@ import { db } from "../db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
-import { registerUser, setupPassport } from "./auth";
+import { setupAuth } from "./auth";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
 import cors from "cors";
 
-export function registerRoutes(app: express.Router) {
+const scryptAsync = promisify(scrypt);
+
+export function registerRoutes(app: express.Express) {
   // Enable CORS for all routes
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3002'],
+    origin: ['http://localhost:5173', 'http://localhost:3002', process.env.REPLIT_ORIGIN || 'https://localhost:3002'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
-  // Initialize passport
-  const passportMiddleware = setupPassport();
-  app.use(passportMiddleware.initialize());
-  app.use(passportMiddleware.session());
+  // Initialize authentication middleware
+  setupAuth(app);
 
-  // Authentication Routes
-  app.post("/api/auth/register", async (req, res) => {
+  // Basic authentication routes
+  app.post("/register", async (req, res) => {
     try {
-      const user = await registerUser(req.body);
+      const { email, password, name } = req.body;
+
+      // Check if user already exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists" });
+      }
+
+      // Hash password and create user
+      const salt = randomBytes(16).toString('hex');
+      const hashedPassword = (await scryptAsync(password, salt, 64)).toString('hex') + '.' + salt;
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          email,
+          name,
+          password: hashedPassword,
+        })
+        .returning();
+
       req.login(user, (err) => {
         if (err) {
-          console.error("Login error after registration:", err);
           return res.status(500).json({ error: "Error logging in after registration" });
         }
-        res.json({ message: "Registration successful" });
+        return res.json({ user });
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(400).json({ error: error instanceof Error ? error.message : "Registration failed" });
+      res.status(500).json({ error: "Registration failed" });
     }
   });
 
-  app.post("/api/auth/email-login", (req, res, next) => {
-    passport.authenticate("local", (err: Error, user: any, info: { message?: string }) => {
+  app.post("/login", (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
-        console.error("Authentication error:", err);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: "Authentication error" });
       }
-
       if (!user) {
-        console.log("Login failed:", info?.message);
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
-
-      req.logIn(user, (loginErr) => {
-        if (loginErr) {
-          console.error("Login error:", loginErr);
-          return res.status(500).json({ error: "Login failed" });
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ error: "Login error" });
         }
-
-        console.log("Login successful for user:", user.email);
-        res.json({ 
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          isPremium: user.isPremium
-        });
+        return res.json({ user });
       });
     })(req, res, next);
   });
 
-  app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const user = req.user as any;
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      isPremium: user.isPremium
-    });
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
+  app.post("/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
       res.json({ message: "Logged out successfully" });
     });
   });
 
-  if (process.env.NODE_ENV === 'development') {
-    app.post("/api/auth/dev-login", async (req, res) => {
-      try {
-        // Find or create a test user
-        let user = await db.query.users.findFirst({
-          where: eq(users.email, 'test@example.com'),
-        });
-
-        if (!user) {
-          const [newUser] = await db.insert(users).values({
-            email: 'test@example.com',
-            name: 'Test User',
-            password: 'test-password-hash',
-            subscriptionStatus: 'free',
-            emailVerified: true,
-          }).returning();
-          user = newUser;
-        }
-
-        req.login(user, (err) => {
-          if (err) {
-            return res.status(500).json({ error: "Dev login failed" });
-          }
-          res.json({ message: "Dev login successful" });
-        });
-      } catch (error) {
-        console.error("Dev login error:", error);
-        res.status(500).json({ error: "Dev login failed" });
-      }
-    });
-  }
+  app.get("/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
 
   // Content generation route
-  app.post("/api/generate-content", async (req, res) => {
+  app.post("/generate-content", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -138,7 +117,7 @@ export function registerRoutes(app: express.Router) {
       res.json(content);
     } catch (error) {
       console.error("Content generation error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: error instanceof Error ? error.message : "Failed to generate content"
       });
     }

@@ -14,14 +14,21 @@ export function useUser() {
   return useQuery<User>({
     queryKey: ["user"],
     queryFn: async () => {
-      const response = await fetch("/api/user", {
-        credentials: "include"
-      });
-      if (!response.ok) {
-        if (response.status === 401) throw new Error("Not authenticated");
-        throw new Error("Failed to fetch user data");
+      try {
+        const response = await fetch("/user", {
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) return null;
+          throw new Error("Failed to fetch user data");
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        return null;
       }
-      return response.json();
     },
     retry: false,
   });
@@ -34,11 +41,12 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/logout", {
+      const response = await fetch("/logout", {
         method: "POST",
         credentials: "include"
       });
       if (!response.ok) throw new Error("Logout failed");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.setQueryData(["user"], null);
@@ -52,7 +60,7 @@ export function useLogout() {
 }
 
 export function useRequireAuth() {
-  const { data: user, isLoading, error } = useUser();
+  const { data: user, isLoading } = useUser();
   const [, setLocation] = useLocation();
   const logout = useLogout();
 
@@ -75,45 +83,11 @@ export function useGoogleLogin() {
 
   const startGoogleLogin = async () => {
     try {
-      console.log("Initiating Google OAuth login flow");
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2.5;
-
-      const popup = window.open(
-        "/api/auth/google",
-        "GoogleLogin",
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      if (!popup) {
-        throw new Error("Popup blocked");
-      }
-
-      const messageHandler = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
-
-        const cleanup = () => {
-          window.removeEventListener("message", messageHandler);
-          if (popup && !popup.closed) popup.close();
-        };
-
-        if (event.data.type === "oauth-success") {
-          cleanup();
-          queryClient.invalidateQueries({ queryKey: ["user"] });
-          window.location.href = "/dashboard";
-        } else if (event.data.type === "oauth-error") {
-          cleanup();
-          toast({
-            title: "Login failed",
-            description: event.data.message || "Failed to authenticate with Google",
-            variant: "destructive",
-          });
-        }
-      };
-
-      window.addEventListener("message", messageHandler);
+      toast({
+        title: "Not implemented",
+        description: "Google login is not available at this time",
+        variant: "destructive",
+      });
     } catch (error) {
       toast({
         title: "Login failed",

@@ -21,7 +21,7 @@ export default function Login() {
     e.preventDefault();
     setErrorMessage(null);
     try {
-      const endpoint = isRegistering ? "/api/register" : "/api/login";
+      const endpoint = isRegistering ? "/register" : "/login";
       const body = isRegistering ? { email, password, name } : { email, password };
 
       console.log("Submitting to endpoint:", endpoint);
@@ -35,14 +35,16 @@ export default function Login() {
         credentials: "include",
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Authentication failed");
+        const errorText = await response.text();
+        throw new Error(errorText || "Authentication failed");
       }
 
+      const data = await response.json();
+
       if (isRegistering) {
-        setErrorMessage("Please check your email to verify your account");
+        setErrorMessage("Account created successfully! You can now log in.");
+        setIsRegistering(false);
       } else {
         window.location.href = "/dashboard";
       }
@@ -70,13 +72,6 @@ export default function Login() {
           <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-md flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5" />
             Email verified successfully! You can now log in.
-          </div>
-        )}
-
-        {error === "verification_failed" && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            Email verification failed. Please try again or request a new verification email.
           </div>
         )}
 
@@ -119,7 +114,7 @@ export default function Login() {
               />
             </div>
             <Button type="submit" className="w-full">
-              {isRegistering ? "Create Account" : "Sign in with Email"}
+              {isRegistering ? "Create Account" : "Sign in"}
             </Button>
           </form>
 
@@ -133,7 +128,6 @@ export default function Login() {
                 : "Don't have an account? Sign up"}
             </button>
           </div>
-
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -169,28 +163,6 @@ export default function Login() {
               Continue with Google
             </div>
           </Button>
-
-          {import.meta.env.DEV && (
-            <Button
-              onClick={async () => {
-                try {
-                  const response = await fetch("/api/dev-login", {
-                    method: "POST",
-                    credentials: "include",
-                  });
-                  if (response.ok) {
-                    window.location.href = "/dashboard";
-                  }
-                } catch (error) {
-                  console.error("Dev login failed:", error);
-                }
-              }}
-              variant="secondary"
-              className="w-full"
-            >
-              Development Login (Testing Only)
-            </Button>
-          )}
         </div>
       </div>
     </div>
