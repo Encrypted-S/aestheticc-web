@@ -21,6 +21,52 @@ export function registerRoutes(app: express.Router) {
   app.use(passportMiddleware.initialize());
   app.use(passportMiddleware.session());
 
+  // Authentication routes section
+  app.post("/api/auth/email-login", (req, res, next) => {
+    console.log("Login attempt for email:", req.body.email);
+
+    passport.authenticate("local", (err: Error, user: any, info: { message?: string }) => {
+      if (err) {
+        console.error("Authentication error:", err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (!user) {
+        console.log("Login failed:", info?.message);
+        return res.status(401).json({ error: info?.message || "Invalid credentials" });
+      }
+
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Login error:", loginErr);
+          return res.status(500).json({ error: "Login failed" });
+        }
+
+        console.log("Login successful for user:", user.email);
+        res.json({ 
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          isPremium: user.isPremium
+        });
+      });
+    })(req, res, next);
+  });
+
+  // Get current user
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      isPremium: user.isPremium
+    });
+  });
+
   // Premium purchase endpoint
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
@@ -134,47 +180,20 @@ export function registerRoutes(app: express.Router) {
     }
   });
 
-  // Authentication routes section
-  app.post("/api/auth/email-login", async (req, res, next) => {
-    console.log("Login attempt for email:", req.body.email);
+  // Add this route after the email verification endpoint
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const email = "drshanemckeown@gmail.com"; // Hardcoded for this specific fix
+      const password = "password123";
 
-    passport.authenticate('local', (err: Error, user: any, info: { message?: string }) => {
-      if (err) {
-        console.error("Authentication error:", err);
-        return res.status(500).json({ error: err.message });
-      }
-
-      if (!user) {
-        console.log("Login failed:", info?.message);
-        return res.status(401).json({ error: info?.message || "Login failed" });
-      }
-
-      req.logIn(user, (loginErr) => {
-        if (loginErr) {
-          console.error("Login error:", loginErr);
-          return res.status(500).json({ error: "Login failed" });
-        }
-
-        // Removing email verification check
-        console.log("Login successful for user:", user.email);
-        res.json(user);
+      const user = await updateUserPassword(email, password);
+      res.json({ message: "Password reset successful" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to reset password" 
       });
-    })(req, res, next);
-  });
-
-  // Get current user
-  app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
     }
-    res.json(req.user);
-  });
-
-  // Session logout route
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.sendStatus(200);
-    });
   });
 
   // Content generation route
@@ -207,21 +226,11 @@ export function registerRoutes(app: express.Router) {
     }
   });
 
-    // Add this route after the email verification endpoint
-  app.post("/api/auth/reset-password", async (req, res) => {
-    try {
-      const email = "drshanemckeown@gmail.com"; // Hardcoded for this specific fix
-      const password = "password123";
-
-      const user = await updateUserPassword(email, password);
-      res.json({ message: "Password reset successful" });
-    } catch (error) {
-      console.error("Password reset error:", error);
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to reset password" 
-      });
-    }
+  // Session logout route
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout(() => {
+      res.sendStatus(200);
+    });
   });
-
   return app;
 }
