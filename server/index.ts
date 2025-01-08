@@ -33,7 +33,9 @@ async function startServer() {
       origin: process.env.NODE_ENV === 'development' 
         ? 'http://localhost:5173' 
         : process.env.APP_URL,
-      credentials: true
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
     }));
 
     console.log("Setting up session store...");
@@ -53,23 +55,23 @@ async function startServer() {
       cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        httpOnly: true
       }
     };
 
     if (process.env.NODE_ENV === 'production') {
-      app.set('trust proxy', 1); // trust first proxy
+      app.set('trust proxy', 1);
     }
 
     app.use(session(sessionConfig));
 
     console.log("Initializing Passport...");
-    // Initialize Passport
     app.use(passport.initialize());
     app.use(passport.session());
 
     // Passport serialization
-    passport.serializeUser((user: Express.User, done) => {
+    passport.serializeUser((user: any, done) => {
       console.log("Serializing user:", user.id);
       done(null, user.id);
     });
@@ -109,7 +111,7 @@ async function startServer() {
     }
 
     // Start server
-    const port = process.env.PORT || 3001;
+    const port = process.env.PORT || 3002;
     console.log(`Attempting to start server on port ${port}...`);
 
     await new Promise<void>((resolve, reject) => {

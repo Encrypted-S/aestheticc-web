@@ -24,7 +24,9 @@ export default function Login() {
       const endpoint = isRegistering ? "/api/auth/register" : "/api/auth/email-login";
       const body = isRegistering ? { email, password, name } : { email, password };
 
-      const response = await fetch(endpoint, {
+      console.log("Submitting to endpoint:", endpoint);
+
+      const response = await fetch(`http://localhost:3002${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,20 +35,21 @@ export default function Login() {
         credentials: "include",
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Authentication failed");
+      }
+
       const data = await response.json();
 
-      if (response.ok) {
-        if (isRegistering) {
-          setErrorMessage("Please check your email to verify your account");
-        } else {
-          window.location.href = "/dashboard";
-        }
+      if (isRegistering) {
+        setErrorMessage("Please check your email to verify your account");
       } else {
-        setErrorMessage(data.error || "Authentication failed");
+        window.location.href = "/dashboard";
       }
     } catch (error) {
       console.error("Auth error:", error);
-      setErrorMessage("An unexpected error occurred");
+      setErrorMessage(error instanceof Error ? error.message : "An unexpected error occurred");
     }
   };
 
@@ -172,7 +175,7 @@ export default function Login() {
             <Button
               onClick={async () => {
                 try {
-                  const response = await fetch("/api/auth/dev-login", {
+                  const response = await fetch("http://localhost:3002/api/auth/dev-login", {
                     method: "POST",
                     credentials: "include",
                   });
