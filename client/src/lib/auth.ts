@@ -18,23 +18,34 @@ export function useUser() {
         const response = await fetch("/api/user", {
           credentials: "include",
           headers: {
-            "Cache-Control": "no-cache"
+            "Cache-Control": "no-cache",
+            "Accept": "application/json"
           }
         });
 
         if (!response.ok) {
-          if (response.status === 401) return null;
+          if (response.status === 401) {
+            window.location.href = "/login";
+            return null;
+          }
           throw new Error("Failed to fetch user data");
         }
 
         const data = await response.json();
-        return data.user || null;
+        if (!data.success || !data.user) {
+          window.location.href = "/login";
+          return null;
+        }
+        return data.user;
       } catch (error) {
         console.error("Error fetching user:", error);
+        window.location.href = "/login";
         return null;
       }
     },
-    retry: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    retry: 1
   });
 }
 
