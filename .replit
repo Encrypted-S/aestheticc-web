@@ -19,6 +19,10 @@ localPort = 3001
 externalPort = 3003
 
 [[ports]]
+localPort = 3002
+externalPort = 5000
+
+[[ports]]
 localPort = 5000
 externalPort = 3000
 
@@ -44,26 +48,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Server"
+args = "Client Dev"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Client Dev"
-
-[[workflows.workflow]]
-name = "Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "NODE_ENV=development PORT=3001 tsx watch --clear-screen=false server/index.ts"
-waitForPort = 3001
+args = "Server"
 
 [[workflows.workflow]]
 name = "Client Dev"
@@ -79,3 +68,18 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "vite dev --host --port 5173"
 waitForPort = 5173
+
+[[workflows.workflow]]
+name = "Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=development PORT=3002 tsx watch --clear-screen=false server/index.ts"
+waitForPort = 3002
