@@ -9,7 +9,7 @@ export function usePremiumStatus() {
   return useQuery({
     queryKey: ["premiumStatus"],
     queryFn: async () => {
-      const response = await fetch("/api/user", {
+      const response = await fetch("/api/auth/user", {
         credentials: "include"
       });
 
