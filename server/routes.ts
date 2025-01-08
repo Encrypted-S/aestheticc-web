@@ -19,7 +19,7 @@ export function registerRoutes(app: express.Express) {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
-  // Basic middleware
+  // Basic middleware - must come before routes
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -39,101 +39,118 @@ export function registerRoutes(app: express.Express) {
   // Initialize authentication middleware
   setupAuth(app);
 
+  // Create API router
+  const apiRouter = express.Router();
+
+  // Login route with error handling
+  apiRouter.post("/login", (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+      console.log("Login attempt for:", email);
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      passport.authenticate("local", (err: any, user: any, info: any) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.status(500).json({ error: "Authentication error occurred" });
+        }
+
+        if (!user) {
+          console.log("Login failed:", info?.message);
+          return res.status(401).json({ error: info?.message || "Invalid credentials" });
+        }
+
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            console.error("Session error:", loginErr);
+            return res.status(500).json({ error: "Failed to create session" });
+          }
+
+          console.log("User logged in:", user.email);
+          return res.json({ 
+            success: true,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              isPremium: user.isPremium || false
+            }
+          });
+        });
+      })(req, res, next);
+    } catch (error) {
+      console.error("Login route error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Google OAuth routes
-  app.get("/api/auth/google", passport.authenticate("google", {
+  apiRouter.get("/auth/google", passport.authenticate("google", {
     scope: ["profile", "email"],
   }));
 
-  app.get(
-    "/api/auth/google/callback",
+  apiRouter.get(
+    "/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/login" }),
     (req, res) => {
       res.redirect("/dashboard");
     }
   );
 
-  // Login route with proper error handling
-  app.post("/api/login", (req, res, next) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-
-    console.log("Login attempt received for email:", email);
-
-    passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) {
-        console.error("Authentication error:", err);
-        return res.status(500).json({ error: "Internal authentication error occurred" });
-      }
-
-      if (!user) {
-        console.log("Login failed:", info?.message);
-        return res.status(401).json({ error: info?.message || "Invalid credentials" });
-      }
-
-      req.logIn(user, (loginErr) => {
-        if (loginErr) {
-          console.error("Session creation error:", loginErr);
-          return res.status(500).json({ error: "Failed to create login session" });
-        }
-
-        console.log("User logged in successfully:", { id: user.id, email: user.email });
-        return res.json({ 
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            isPremium: user.isPremium || false
-          }
-        });
-      });
-    })(req, res, next);
-  });
-
-  // Logout route with proper session cleanup
-  app.post("/api/logout", (req, res) => {
+  // Logout route
+  apiRouter.post("/logout", (req, res) => {
     const userEmail = (req.user as any)?.email;
-    console.log("Logout attempt for user:", userEmail);
+    console.log("Logout request for:", userEmail);
 
     req.logout((err) => {
       if (err) {
         console.error("Logout error:", err);
         return res.status(500).json({ error: "Logout failed" });
       }
+
       req.session.destroy((err) => {
         if (err) {
           console.error("Session destruction error:", err);
           return res.status(500).json({ error: "Failed to destroy session" });
         }
         res.clearCookie('connect.sid');
-        console.log("User logged out successfully:", userEmail);
-        res.json({ success: true, message: "Logged out successfully" });
+        console.log("User logged out:", userEmail);
+        res.json({ success: true });
       });
     });
   });
 
-  // User info route with proper authentication check
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const user = req.user as any;
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isPremium: user.isPremium || false
+  // User info route
+  apiRouter.get("/user", (req, res) => {
+    try {
+      console.log("User info request");
+      if (!req.isAuthenticated()) {
+        console.log("User not authenticated");
+        return res.status(401).json({ error: "Not authenticated" });
       }
-    });
+
+      const user = req.user as any;
+      console.log("Returning user info for:", user.email);
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          isPremium: user.isPremium || false
+        }
+      });
+    } catch (error) {
+      console.error("User info error:", error);
+      res.status(500).json({ error: "Failed to fetch user info" });
+    }
   });
 
   // Content generation route
-  app.post("/api/generate-content", async (req, res) => {
+  apiRouter.post("/generate-content", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ 
         success: false,
@@ -169,6 +186,9 @@ export function registerRoutes(app: express.Express) {
       });
     }
   });
+
+  // Mount API routes before any other middleware
+  app.use("/api", apiRouter);
 
   return app;
 }

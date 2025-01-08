@@ -6,19 +6,21 @@ import { setupVite, serveStatic } from "./vite";
 const app = express();
 const server = createServer(app);
 
-// Use environment provided port or fallback to 3002 to avoid conflicts
-const PORT = process.env.PORT || 3002;
+// Standard port configuration for Express backend
+const PORT = 3000;
 const HOST = '0.0.0.0';
 
 async function main() {
   try {
+    // Register API routes first
+    registerRoutes(app);
+
+    // Then set up Vite or static serving
     if (process.env.NODE_ENV === 'production') {
       serveStatic(app);
     } else {
       await setupVite(app, server);
     }
-
-    registerRoutes(app);
 
     server.listen(PORT, HOST, () => {
       console.log(`Server running on http://${HOST}:${PORT}`);
