@@ -7,6 +7,8 @@ import { users } from "@db/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import type { Express } from "express";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 
 const scryptAsync = promisify(scrypt);
 
@@ -38,6 +40,21 @@ const crypto = {
 };
 
 export function setupAuth(app: Express) {
+  // Setup session middleware
+  const MemoryStore = createMemoryStore(session);
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
   // Initialize Passport
   app.use(passport.initialize());
   app.use(passport.session());
@@ -48,8 +65,9 @@ export function setupAuth(app: Express) {
       {
         usernameField: "email",
         passwordField: "password",
+        passReqToCallback: true,
       },
-      async (email, password, done) => {
+      async (req, email, password, done) => {
         try {
           console.log("Attempting authentication for email:", email);
           const user = await db.query.users.findFirst({
@@ -76,10 +94,14 @@ export function setupAuth(app: Express) {
           }
 
           console.log("Authentication successful for user:", email, "with id:", user.id);
-          req.session.save((err) => {
-            if (err) console.error("Session save error:", err);
-            else console.log("Session saved successfully");
-          });
+
+          if (req.session) {
+            req.session.save((err) => {
+              if (err) console.error("Session save error:", err);
+              else console.log("Session saved successfully");
+            });
+          }
+
           return done(null, user);
         } catch (error) {
           console.error("Authentication error:", error);
@@ -102,38 +124,35 @@ export function setupAuth(app: Express) {
           try {
             console.log("Google auth callback for profile:", profile.id);
             let user = await db.query.users.findFirst({
-              where: eq(users.google_id, profile.id),
+              where: eq(users.googleId, profile.id),
             });
 
             if (!user) {
-              // Check if user exists with same email
               user = await db.query.users.findFirst({
                 where: eq(users.email, profile.emails?.[0]?.value || ""),
               });
 
               if (user) {
-                // Update existing user with Google ID
                 const [updatedUser] = await db
                   .update(users)
                   .set({
-                    google_id: profile.id,
-                    avatar_url: profile.photos?.[0]?.value,
-                    email_verified: true,
+                    googleId: profile.id,
+                    avatarUrl: profile.photos?.[0]?.value,
+                    emailVerified: true,
                   })
                   .where(eq(users.id, user.id))
                   .returning();
                 user = updatedUser;
               } else {
-                // Create new user
                 const [newUser] = await db
                   .insert(users)
                   .values({
                     email: profile.emails?.[0]?.value || "",
                     name: profile.displayName,
-                    google_id: profile.id,
-                    avatar_url: profile.photos?.[0]?.value,
+                    googleId: profile.id,
+                    avatarUrl: profile.photos?.[0]?.value,
                     password: await crypto.hash(randomBytes(32).toString("hex")),
-                    email_verified: true,
+                    emailVerified: true,
                   })
                   .returning();
                 user = newUser;
