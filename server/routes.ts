@@ -108,11 +108,30 @@ export function registerRoutes(app: express.Express) {
   // Content generation route
   app.post("/api/generate-content", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
+      return res.status(401).json({ 
+        success: false,
+        error: "Authentication required" 
+      });
     }
 
     try {
       const { topic, treatmentCategory, contentType, platform, tone, additionalContext } = req.body;
+
+      // Validate required fields
+      if (!topic || !treatmentCategory || !contentType || !platform || !tone) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields",
+          details: {
+            topic: !topic,
+            treatmentCategory: !treatmentCategory,
+            contentType: !contentType,
+            platform: !platform,
+            tone: !tone
+          }
+        });
+      }
+
       const content = await generateContent({
         topic,
         treatmentCategory,
@@ -122,11 +141,18 @@ export function registerRoutes(app: express.Express) {
         additionalContext
       });
 
-      res.json({ success: true, content });
+      res.json({ 
+        success: true, 
+        content 
+      });
     } catch (error) {
       console.error("Content generation error:", error);
+
+      // Return a structured error response
       res.status(500).json({
-        error: error instanceof Error ? error.message : "Failed to generate content"
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to generate content",
+        details: error instanceof Error ? error.stack : undefined
       });
     }
   });

@@ -71,6 +71,8 @@ export default function ContentGenerator() {
   const onSubmit = async (data: FormData) => {
     setIsGenerating(true);
     setIsSaved(false);
+    setPreview(null); // Clear previous preview
+
     try {
       // Track content generation event
       await fetch("/api/analytics/track", {
@@ -92,40 +94,51 @@ export default function ContentGenerator() {
         credentials: "include",
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to generate content");
+        throw new Error(result.error || "Failed to generate content");
       }
 
-      const result = await response.json();
-      setGeneratedContent(result);
+      if (!result.success) {
+        throw new Error(result.error || "Content generation failed");
+      }
+
+      setGeneratedContent(result.content);
 
       setPreview(
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold mb-2">Content:</h4>
-            <p className="whitespace-pre-wrap">{result.mainText}</p>
+            <p className="whitespace-pre-wrap">{result.content.mainText}</p>
           </div>
-          {result.disclaimer && (
+          {result.content.disclaimer && (
             <div>
               <h4 className="font-semibold mb-2">Medical Disclaimer:</h4>
-              <p className="text-sm text-muted-foreground">{result.disclaimer}</p>
+              <p className="text-sm text-muted-foreground">{result.content.disclaimer}</p>
             </div>
           )}
           <div>
             <h4 className="font-semibold mb-2">Hashtags:</h4>
-            <p className="text-primary">{result.hashtags.join(" ")}</p>
+            <p className="text-primary">{result.content.hashtags.join(" ")}</p>
           </div>
           <div>
             <h4 className="font-semibold mb-2">Image Suggestion:</h4>
-            <p className="italic">{result.imagePrompt}</p>
+            <p className="italic">{result.content.imagePrompt}</p>
           </div>
         </div>
       );
     } catch (error) {
-      console.error(error);
+      console.error("Content generation error:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+
       setPreview(
-        <div className="text-destructive">
-          Failed to generate content. Please try again.
+        <div className="p-4 border border-destructive rounded bg-destructive/10">
+          <div className="text-destructive font-semibold mb-2">Content Generation Failed</div>
+          <p className="text-destructive">{errorMessage}</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Please check your inputs and try again. If the problem persists, the service may be temporarily unavailable.
+          </p>
         </div>
       );
     } finally {

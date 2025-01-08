@@ -22,7 +22,7 @@ const generateMedicalDisclaimer = (treatmentCategory: string) => {
     body: "Results may vary. Consultation required. Treatment outcomes depend on individual factors.",
     wellness: "Results may vary. Consult with our wellness professionals for personalized recommendations.",
   };
-  
+
   return disclaimers[treatmentCategory as keyof typeof disclaimers] || 
     "Individual results may vary. Professional consultation recommended.";
 };
@@ -35,6 +35,10 @@ export async function generateContent({
   tone,
   additionalContext = ""
 }: ContentRequest) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OpenAI API key is not configured");
+  }
+
   const systemPrompt = `You are an expert social media manager for aesthetic clinics, specializing in ${treatmentCategory} treatments.
 Your content must be:
 - Medically accurate and compliant
@@ -64,6 +68,11 @@ Include:
 Keep the content professional, compliant with medical advertising standards, and engaging.`;
 
   try {
+    // Validate the content type is supported
+    if (!contentTypePrompts[contentType as keyof typeof contentTypePrompts]) {
+      throw new Error(`Unsupported content type: ${contentType}`);
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
@@ -81,7 +90,7 @@ Keep the content professional, compliant with medical advertising standards, and
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
-      throw new Error("No content generated");
+      throw new Error("OpenAI returned empty content");
     }
 
     // Generate relevant hashtags
@@ -106,6 +115,10 @@ Keep the content professional, compliant with medical advertising standards, and
       .filter(tag => tag.startsWith("#"))
       .slice(0, 7) || [];
 
+    if (hashtags.length === 0) {
+      throw new Error("Failed to generate hashtags");
+    }
+
     // Generate image prompt based on content type
     const baseImagePrompt = `Professional, high-quality ${contentType === 'beforeAfter' ? 'before and after' : ''} photo for ${topic} in an aesthetic clinic setting.`;
     const imagePrompt = `${baseImagePrompt} The image should be clean, modern, and medical-grade while remaining approachable and aesthetic. Focus on ${treatmentCategory} treatment visualization.`;
@@ -121,6 +134,26 @@ Keep the content professional, compliant with medical advertising standards, and
     };
   } catch (error) {
     console.error("OpenAI content generation error:", error);
-    throw new Error("Failed to generate content");
+
+    // Handle specific OpenAI API errors
+    if (error instanceof OpenAI.APIError) {
+      switch (error.status) {
+        case 401:
+          throw new Error("Invalid API key. Please check your OpenAI API configuration.");
+        case 429:
+          throw new Error("Rate limit exceeded. Please try again in a few moments.");
+        case 500:
+          throw new Error("OpenAI service error. Please try again later.");
+        default:
+          throw new Error(`OpenAI API error: ${error.message}`);
+      }
+    }
+
+    // Handle network or other errors
+    if (error instanceof Error) {
+      throw new Error(`Content generation failed: ${error.message}`);
+    }
+
+    throw new Error("An unexpected error occurred during content generation");
   }
 }
