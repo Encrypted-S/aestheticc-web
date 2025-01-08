@@ -20,6 +20,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
     try {
       const endpoint = isRegistering ? "/api/register" : "/api/login";
       const body = isRegistering ? { email, password, name } : { email, password };
@@ -35,7 +36,14 @@ export default function Login() {
         credentials: "include",
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { error: text };
+      }
 
       if (!response.ok) {
         console.error('Auth error:', { 

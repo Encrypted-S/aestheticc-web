@@ -75,16 +75,20 @@ export function registerRoutes(app: express.Express) {
 
       console.log("User created successfully:", { id: user.id, email: user.email });
 
+      // Log the user in after registration
       req.login(user, (err) => {
         if (err) {
           console.error("Login after registration failed:", err);
           return res.status(500).json({ error: "Error logging in after registration" });
         }
-        return res.json({ user: {
-          id: user.id,
-          email: user.email,
-          name: user.name
-        }});
+        return res.json({ 
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          }
+        });
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -112,14 +116,15 @@ export function registerRoutes(app: express.Express) {
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
 
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Session creation error:", err);
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Session creation error:", loginErr);
           return res.status(500).json({ error: "Login error" });
         }
 
         console.log("User logged in successfully:", { id: user.id, email: user.email });
         return res.json({ 
+          success: true,
           user: {
             id: user.id,
             email: user.email,
@@ -141,7 +146,7 @@ export function registerRoutes(app: express.Express) {
         return res.status(500).json({ error: "Logout failed" });
       }
       console.log("User logged out successfully:", userEmail);
-      res.json({ message: "Logged out successfully" });
+      res.json({ success: true, message: "Logged out successfully" });
     });
   });
 
@@ -151,14 +156,18 @@ export function registerRoutes(app: express.Express) {
     }
     const user = req.user as any;
     res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      isPremium: user.isPremium || false
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        isPremium: user.isPremium || false
+      }
     });
   });
 
-  app.post("/generate-content", async (req, res) => {
+  // Content generation route
+  app.post("/api/generate-content", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -174,7 +183,7 @@ export function registerRoutes(app: express.Express) {
         additionalContext
       });
 
-      res.json(content);
+      res.json({ success: true, content });
     } catch (error) {
       console.error("Content generation error:", error);
       res.status(500).json({
