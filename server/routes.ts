@@ -4,9 +4,18 @@ import { db } from "../db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
-import { registerUser, setupPassport, updateUserPassword } from "./auth";
+import { registerUser, setupPassport } from "./auth";
+import cors from "cors";
 
 export function registerRoutes(app: express.Router) {
+  // Enable CORS for all routes
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+      ? 'https://your-production-domain.com' 
+      : 'http://localhost:5173',
+    credentials: true
+  }));
+
   // Initialize passport
   const passportMiddleware = setupPassport();
   app.use(passportMiddleware.initialize());
@@ -14,6 +23,8 @@ export function registerRoutes(app: express.Router) {
 
   // Core Authentication Routes
   app.post("/api/auth/email-login", (req, res, next) => {
+    console.log("Login attempt received:", req.body.email); // Debug log
+
     passport.authenticate("local", (err: Error, user: any, info: { message?: string }) => {
       if (err) {
         console.error("Authentication error:", err);
@@ -43,6 +54,8 @@ export function registerRoutes(app: express.Router) {
   });
 
   app.get("/api/auth/user", (req, res) => {
+    console.log("User session check:", req.isAuthenticated()); // Debug log
+
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }

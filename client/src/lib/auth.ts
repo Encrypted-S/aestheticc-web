@@ -7,17 +7,20 @@ export type User = {
   id: number;
   email: string;
   name: string;
-  avatarUrl?: string;
-  subscriptionStatus: string;
-  lastLogin?: Date;
+  isPremium: boolean;
 };
 
 export function useUser() {
   return useQuery<User>({
     queryKey: ["user"],
     queryFn: async () => {
-      const response = await fetch("/api/auth/user");
-      if (!response.ok) throw new Error("Not authenticated");
+      const response = await fetch("/api/auth/user", {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Not authenticated");
+        throw new Error("Failed to fetch user data");
+      }
       return response.json();
     },
     retry: false,
@@ -31,7 +34,10 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/auth/logout", { method: "POST" });
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
       if (!response.ok) throw new Error("Logout failed");
     },
     onSuccess: () => {
@@ -65,6 +71,7 @@ export function useRequireAuth() {
 
 export function useGoogleLogin() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const startGoogleLogin = async () => {
     try {
@@ -74,9 +81,8 @@ export function useGoogleLogin() {
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
-      
+
       const baseUrl = window.location.origin;
-      console.log("OAuth start - Base URL:", baseUrl);
       const popup = window.open(
         `${baseUrl}/api/auth/google`,
         "GoogleLogin",
@@ -89,54 +95,17 @@ export function useGoogleLogin() {
 
       // Handle the OAuth callback
       const messageHandler = (event: MessageEvent) => {
-        const origin = window.location.origin;
-        console.log("Checking message origin:", {
-          expected: origin,
-          received: event.origin,
-          eventData: event.data
-        });
-        
-        // Verify origin
-        if (event.origin !== origin) {
-          console.error("Received message from unexpected origin:", event.origin);
-          return;
-        }
+        if (event.origin !== window.location.origin) return;
 
-        // Clean up event listener
         const cleanup = () => {
           window.removeEventListener("message", messageHandler);
-          if (popup && !popup.closed) {
-            popup.close();
-          }
+          if (popup && !popup.closed) popup.close();
         };
 
         if (event.data.type === "oauth-success") {
           cleanup();
-          
-          // Verify authentication state
-          fetch("/api/auth/user")
-            .then(response => {
-              if (!response.ok) {
-                throw new Error("Authentication verification failed");
-              }
-              return response.json();
-            })
-            .then(() => {
-              toast({
-                title: "Welcome!",
-                description: "You have been successfully logged in.",
-              });
-              // Use navigation instead of direct location change
-              window.location.href = "/dashboard";
-            })
-            .catch(error => {
-              console.error("Auth verification failed:", error);
-              toast({
-                title: "Login verification failed",
-                description: "Please try logging in again",
-                variant: "destructive",
-              });
-            });
+          queryClient.invalidateQueries({ queryKey: ["user"] });
+          window.location.href = "/dashboard";
         } else if (event.data.type === "oauth-error") {
           cleanup();
           toast({
