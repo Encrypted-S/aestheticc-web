@@ -6,16 +6,34 @@ import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
 import { setupAuth } from "./auth";
 import cors from "cors";
+import session from "express-session";
 
 export function registerRoutes(app: express.Express) {
-  // Enable CORS for all routes
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Enable CORS for all routes with credentials
   app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3002', process.env.REPLIT_ORIGIN || 'https://localhost:3002'],
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.REPLIT_ORIGIN 
+      : ['http://localhost:5173', 'http://localhost:3002'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+
+  // Basic middleware
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Session configuration
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   }));
 
   // Initialize authentication middleware
@@ -34,7 +52,7 @@ export function registerRoutes(app: express.Express) {
     }
   );
 
-  // Login route
+  // Login route with proper error handling
   app.post("/api/login", (req, res, next) => {
     const { email, password } = req.body;
 
@@ -52,10 +70,10 @@ export function registerRoutes(app: express.Express) {
 
       if (!user) {
         console.log("Login failed:", info?.message);
-        return res.status(401).json({ error: "Invalid email or password" });
+        return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
 
-      req.login(user, (loginErr) => {
+      req.logIn(user, (loginErr) => {
         if (loginErr) {
           console.error("Session creation error:", loginErr);
           return res.status(500).json({ error: "Failed to create login session" });
@@ -75,6 +93,7 @@ export function registerRoutes(app: express.Express) {
     })(req, res, next);
   });
 
+  // Logout route with proper session cleanup
   app.post("/api/logout", (req, res) => {
     const userEmail = (req.user as any)?.email;
     console.log("Logout attempt for user:", userEmail);
@@ -84,11 +103,19 @@ export function registerRoutes(app: express.Express) {
         console.error("Logout error:", err);
         return res.status(500).json({ error: "Logout failed" });
       }
-      console.log("User logged out successfully:", userEmail);
-      res.json({ success: true, message: "Logged out successfully" });
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({ error: "Failed to destroy session" });
+        }
+        res.clearCookie('connect.sid');
+        console.log("User logged out successfully:", userEmail);
+        res.json({ success: true, message: "Logged out successfully" });
+      });
     });
   });
 
+  // User info route with proper authentication check
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -117,18 +144,10 @@ export function registerRoutes(app: express.Express) {
     try {
       const { topic, treatmentCategory, contentType, platform, tone, additionalContext } = req.body;
 
-      // Validate required fields
       if (!topic || !treatmentCategory || !contentType || !platform || !tone) {
         return res.status(400).json({
           success: false,
-          error: "Missing required fields",
-          details: {
-            topic: !topic,
-            treatmentCategory: !treatmentCategory,
-            contentType: !contentType,
-            platform: !platform,
-            tone: !tone
-          }
+          error: "Missing required fields"
         });
       }
 
@@ -141,24 +160,12 @@ export function registerRoutes(app: express.Express) {
         additionalContext
       });
 
-      res.json({ 
-        success: true, 
-        content 
-      });
+      res.json({ success: true, content });
     } catch (error) {
       console.error("Content generation error:", error);
-
-      // Return a structured error response with more details
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-      const isValidationError = errorMessage.includes("Validation failed");
-      const isConfigError = errorMessage.includes("API key");
-
-      res.status(isValidationError ? 400 : isConfigError ? 503 : 500).json({
+      res.status(500).json({
         success: false,
-        error: errorMessage,
-        code: isValidationError ? "VALIDATION_ERROR" : 
-              isConfigError ? "API_CONFIG_ERROR" : "GENERATION_ERROR",
-        retryable: !isValidationError && !isConfigError
+        error: error instanceof Error ? error.message : "An unexpected error occurred"
       });
     }
   });

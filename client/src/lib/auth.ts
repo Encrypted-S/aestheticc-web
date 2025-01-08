@@ -11,7 +11,10 @@ export type User = {
 };
 
 export function useUser() {
-  return useQuery<User>({
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  const query = useQuery<User>({
     queryKey: ["user"],
     queryFn: async () => {
       try {
@@ -25,7 +28,6 @@ export function useUser() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            window.location.href = "/login";
             return null;
           }
           throw new Error("Failed to fetch user data");
@@ -33,20 +35,21 @@ export function useUser() {
 
         const data = await response.json();
         if (!data.success || !data.user) {
-          window.location.href = "/login";
           return null;
         }
         return data.user;
       } catch (error) {
         console.error("Error fetching user:", error);
-        window.location.href = "/login";
         return null;
       }
     },
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    retry: 1
+    retry: false,
+    staleTime: 1000 * 60 * 5 // 5 minutes
   });
+
+  return query;
 }
 
 export function useLogout() {
@@ -60,30 +63,45 @@ export function useLogout() {
         method: "POST",
         credentials: "include"
       });
-      if (!response.ok) throw new Error("Logout failed");
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Logout failed");
+      }
+
       return response.json();
     },
     onSuccess: () => {
       queryClient.setQueryData(["user"], null);
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       setLocation("/login");
       toast({
         title: "Logged out successfully",
-        description: "You have been logged out of your account.",
+        description: "You have been logged out of your account."
       });
     },
+    onError: (error) => {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
   });
 }
 
 export function useRequireAuth() {
-  const { data: user, isLoading } = useUser();
+  const { data: user, isLoading, error } = useUser();
   const [, setLocation] = useLocation();
   const logout = useLogout();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && !error) {
+      console.log("No authenticated user found, redirecting to login");
       setLocation("/login");
     }
-  }, [isLoading, user, setLocation]);
+  }, [isLoading, user, error, setLocation]);
 
   return { 
     user, 

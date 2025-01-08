@@ -24,6 +24,14 @@ export default function Dashboard() {
   const [currentTab, setCurrentTab] = useState("generate");
 
   useEffect(() => {
+    // Debug logging
+    console.log("Dashboard mount - Auth state:", { 
+      user: user ? "present" : "absent", 
+      isLoading 
+    });
+  }, [user, isLoading]);
+
+  useEffect(() => {
     const searchParams = new URLSearchParams(location.split("?")[1]);
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== currentTab) {
@@ -43,14 +51,20 @@ export default function Dashboard() {
   }
 
   if (!user) {
-    console.log("No user found in Dashboard, redirecting...");
-    return null;
+    console.log("Dashboard - No user found, but not redirecting (useRequireAuth will handle redirect)");
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Verifying authentication...</span>
+        </div>
+      </div>
+    );
   }
 
   const handleLogout = async () => {
     try {
       await logout();
-      setLocation("/login");
     } catch (error) {
       console.error("Logout failed:", error);
     }

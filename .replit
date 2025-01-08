@@ -7,7 +7,7 @@ modules = ["nodejs-20"]
 channel = "stable-22_11"
 
 [deployment]
-run = ["sh", "-c", "NODE_ENV=development PORT=5173 tsx watch --clear-screen=false server/index.ts"]
+run = ["sh", "-c", "NODE_ENV=development tsx --watch server/index.ts"]
 build = ["npm", "run", "build"]
 
 [[ports]]
@@ -50,5 +50,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_ENV=development PORT=5173 tsx watch --clear-screen=false server/index.ts"
-waitForPort = 5173
+args = "NODE_ENV=development tsx --watch server/index.ts"
+waitForPort = 3002
