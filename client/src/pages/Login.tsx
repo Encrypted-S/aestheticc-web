@@ -50,7 +50,7 @@ export default function Login() {
           status: response.status, 
           data 
         });
-        throw new Error(data.error || "Authentication failed");
+        throw new Error(data.error || "Broken");
       }
 
       if (isRegistering) {
@@ -61,7 +61,7 @@ export default function Login() {
       }
     } catch (error) {
       console.error("Auth error:", error);
-      setErrorMessage(error instanceof Error ? error.message : "An unexpected error occurred");
+      setErrorMessage(error instanceof Error ? error.message : "Broken");
     }
   };
 
