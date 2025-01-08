@@ -1,6 +1,7 @@
 
 run = "npm run dev"
 entrypoint = "server/index.ts"
+modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-22_11"
@@ -10,5 +11,44 @@ run = ["sh", "-c", "NODE_ENV=development PORT=5173 tsx watch --clear-screen=fals
 build = ["npm", "run", "build"]
 
 [[ports]]
+localPort = 80
+externalPort = 3000
+
+[[ports]]
+localPort = 3000
+externalPort = 3001
+
+[[ports]]
+localPort = 3002
+externalPort = 3002
+
+[[ports]]
 localPort = 5173
 externalPort = 80
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Development Server"
+
+[[workflows.workflow]]
+name = "Development Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=80 node --loader tsx ./server/index.ts"
+waitForPort = 80
