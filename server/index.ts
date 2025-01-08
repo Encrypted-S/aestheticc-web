@@ -30,9 +30,26 @@ async function startServer() {
     app.use(express.json());
     app.use(cookieParser());
 
-    // CORS configuration
+    // CORS configuration with Replit support
+    const allowedOrigins = [
+      'http://localhost:5173',  // Vite dev server
+      'http://localhost:3001',  // Backend server
+      process.env.REPLIT_ORIGIN || 'https://localhost:3001'
+    ];
+
+    console.log("Allowed CORS origins:", allowedOrigins);
+
     app.use(cors({
-      origin: ['http://localhost:5173', 'http://localhost:3002', process.env.REPLIT_ORIGIN || 'https://localhost:3002'],
+      origin: function(origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) === -1) {
+          console.log("Rejected origin:", origin);
+          return callback(null, false);
+        }
+        return callback(null, true);
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
@@ -81,12 +98,12 @@ async function startServer() {
       serveStatic(app);
     }
 
-    // Start server
-    const port = process.env.PORT || 3002;
+    // Use port 3001 for backend
+    const port = process.env.PORT || 3001;
     console.log(`Starting server on port ${port}...`);
 
     server.listen(Number(port), "0.0.0.0", () => {
-      console.log(`Server running on port ${port}`);
+      console.log(`Server running at http://0.0.0.0:${port}`);
     });
 
     return server;

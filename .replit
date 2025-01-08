@@ -8,7 +8,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["sh", "-c", "NODE_ENV=development PORT=3001 tsx watch --clear-screen=false server/index.ts"]
 
 [[ports]]
 localPort = 3000
@@ -21,6 +21,14 @@ externalPort = 3003
 [[ports]]
 localPort = 3002
 externalPort = 5000
+
+[[ports]]
+localPort = 4000
+externalPort = 5173
+
+[[ports]]
+localPort = 4100
+externalPort = 6000
 
 [[ports]]
 localPort = 5000
@@ -50,10 +58,6 @@ author = "agent"
 task = "workflow.run"
 args = "Server"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Client Dev"
-
 [[workflows.workflow]]
 name = "Server"
 author = "agent"
@@ -68,18 +72,3 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "NODE_ENV=development PORT=3001 tsx watch --clear-screen=false server/index.ts"
 waitForPort = 3001
-
-[[workflows.workflow]]
-name = "Client Dev"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "vite dev --host --port 5173"
-waitForPort = 5173
