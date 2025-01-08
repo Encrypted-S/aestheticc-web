@@ -5,11 +5,7 @@ import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
 import { setupAuth } from "./auth";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 import cors from "cors";
-
-const scryptAsync = promisify(scrypt);
 
 export function registerRoutes(app: express.Express) {
   // Enable CORS for all routes
@@ -38,64 +34,7 @@ export function registerRoutes(app: express.Express) {
     }
   );
 
-  // Basic authentication routes
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { email, password, name } = req.body;
-
-      if (!email || !password || !name) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      console.log("Registration attempt for email:", email);
-
-      // Check if user already exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.email, email),
-      });
-
-      if (existingUser) {
-        console.log("Registration failed - user exists:", email);
-        return res.status(400).json({ error: "User already exists" });
-      }
-
-      // Hash password and create user
-      const salt = randomBytes(16).toString('hex');
-      const hashedPassword = (await scryptAsync(password, salt, 64) as Buffer).toString('hex') + '.' + salt;
-
-      console.log("Creating new user with email:", email);
-      const [user] = await db
-        .insert(users)
-        .values({
-          email,
-          name,
-          password: hashedPassword,
-        })
-        .returning();
-
-      console.log("User created successfully:", { id: user.id, email: user.email });
-
-      // Log the user in after registration
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login after registration failed:", err);
-          return res.status(500).json({ error: "Error logging in after registration" });
-        }
-        return res.json({ 
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name
-          }
-        });
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ error: "Registration failed" });
-    }
-  });
-
+  // Login route
   app.post("/api/login", (req, res, next) => {
     const { email, password } = req.body;
 
