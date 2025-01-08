@@ -148,11 +148,17 @@ export function registerRoutes(app: express.Express) {
     } catch (error) {
       console.error("Content generation error:", error);
 
-      // Return a structured error response
-      res.status(500).json({
+      // Return a structured error response with more details
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      const isValidationError = errorMessage.includes("Validation failed");
+      const isConfigError = errorMessage.includes("API key");
+
+      res.status(isValidationError ? 400 : isConfigError ? 503 : 500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Failed to generate content",
-        details: error instanceof Error ? error.stack : undefined
+        error: errorMessage,
+        code: isValidationError ? "VALIDATION_ERROR" : 
+              isConfigError ? "API_CONFIG_ERROR" : "GENERATION_ERROR",
+        retryable: !isValidationError && !isConfigError
       });
     }
   });
