@@ -7,7 +7,7 @@ const app = express();
 const server = createServer(app);
 
 // Use the PORT provided by the environment, default to 3000 if not specified
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '5173', 10);
 
 async function main() {
   try {
