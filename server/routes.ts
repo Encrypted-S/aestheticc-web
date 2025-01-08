@@ -21,8 +21,8 @@ export function registerRoutes(app: express.Router) {
   app.use(passportMiddleware.initialize());
   app.use(passportMiddleware.session());
 
-  // Authentication routes section
-  app.post("/api/auth/email-login", (req, res, next) => {
+  // Authentication routes
+  app.post("/api/login", (req, res, next) => {
     console.log("Login attempt for email:", req.body.email);
 
     passport.authenticate("local", (err: Error, user: any, info: { message?: string }) => {
@@ -53,7 +53,6 @@ export function registerRoutes(app: express.Router) {
     })(req, res, next);
   });
 
-  // Get current user
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -67,7 +66,13 @@ export function registerRoutes(app: express.Router) {
     });
   });
 
-  // Premium purchase endpoint
+  app.post("/api/logout", (req, res) => {
+    req.logout(() => {
+      res.sendStatus(200);
+    });
+  });
+
+  // Stripe endpoints
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -226,11 +231,8 @@ export function registerRoutes(app: express.Router) {
     }
   });
 
-  // Session logout route
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.sendStatus(200);
-    });
-  });
+  // Session logout route -  already present in edited code.
+  
+
   return app;
 }

@@ -9,7 +9,9 @@ export function usePremiumStatus() {
   return useQuery({
     queryKey: ["premiumStatus"],
     queryFn: async () => {
-      const response = await fetch("/api/user");
+      const response = await fetch("/api/user", {
+        credentials: "include"
+      });
       if (!response.ok) throw new Error("Failed to fetch user status");
       const user = await response.json();
       return user.isPremium || false;
