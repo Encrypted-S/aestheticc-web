@@ -50,7 +50,7 @@ export default function Login() {
           status: response.status, 
           data 
         });
-        throw new Error(data.error || "Broken");
+        throw new Error(data.error || "Authentication failed - Please check your credentials");
       }
 
       if (isRegistering) {
@@ -61,7 +61,7 @@ export default function Login() {
       }
     } catch (error) {
       console.error("Auth error:", error);
-      setErrorMessage(error instanceof Error ? error.message : "Broken");
+      setErrorMessage(error instanceof Error ? error.message : "An unexpected authentication error occurred");
     }
   };
 

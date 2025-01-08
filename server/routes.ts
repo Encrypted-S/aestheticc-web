@@ -39,7 +39,7 @@ export function registerRoutes(app: express.Express) {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Broken" });
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
     console.log("Login attempt received for email:", email);
@@ -47,18 +47,18 @@ export function registerRoutes(app: express.Express) {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
         console.error("Authentication error:", err);
-        return res.status(500).json({ error: "Broken" });
+        return res.status(500).json({ error: "Internal authentication error occurred" });
       }
 
       if (!user) {
         console.log("Login failed:", info?.message);
-        return res.status(401).json({ error: "Broken" });
+        return res.status(401).json({ error: "Invalid email or password" });
       }
 
       req.login(user, (loginErr) => {
         if (loginErr) {
           console.error("Session creation error:", loginErr);
-          return res.status(500).json({ error: "Broken" });
+          return res.status(500).json({ error: "Failed to create login session" });
         }
 
         console.log("User logged in successfully:", { id: user.id, email: user.email });
