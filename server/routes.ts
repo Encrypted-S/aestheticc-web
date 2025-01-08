@@ -10,7 +10,7 @@ import { generateVerificationToken, sendVerificationEmail, verifyEmail } from ".
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-11-20.acacia",
 });
 
 const PREMIUM_PRICE = 2999; // $29.99 in cents
@@ -46,9 +46,9 @@ export function registerRoutes(app: express.Router) {
         mode: "payment",
         success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.origin}/payment-cancelled`,
-        customer_email: req.user.email,
+        customer_email: (req.user as any).email,
         metadata: {
-          userId: req.user.id.toString(),
+          userId: (req.user as any).id.toString(),
         },
       });
 
@@ -80,7 +80,7 @@ export function registerRoutes(app: express.Router) {
         // Update user's premium status in database
         await db.update(users)
           .set({ isPremium: true })
-          .where(eq(users.id, req.user.id));
+          .where(eq(users.id, (req.user as any).id));
 
         return res.json({ status: "success" });
       }
@@ -133,7 +133,7 @@ export function registerRoutes(app: express.Router) {
   app.post("/api/auth/email-login", async (req, res, next) => {
     console.log("Login attempt for email:", req.body.email);
 
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err: Error, user: any, info: { message?: string }) => {
       if (err) {
         console.error("Authentication error:", err);
         return res.status(500).json({ error: err.message });
@@ -202,7 +202,7 @@ export function registerRoutes(app: express.Router) {
     }
   });
 
-  // Add this route after the email verification endpoint
+    // Add this route after the email verification endpoint
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
       const email = "drshanemckeown@gmail.com"; // Hardcoded for this specific fix

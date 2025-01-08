@@ -19,6 +19,10 @@ localPort = 3001
 externalPort = 3003
 
 [[ports]]
+localPort = 3002
+externalPort = 5000
+
+[[ports]]
 localPort = 5000
 externalPort = 3000
 
@@ -62,8 +66,8 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "NODE_ENV=development PORT=3001 tsx watch --clear-screen=false server/index.ts"
-waitForPort = 3001
+args = "NODE_ENV=development PORT=3002 tsx watch --clear-screen=false server/index.ts"
+waitForPort = 3002
 
 [[workflows.workflow]]
 name = "Client Dev"

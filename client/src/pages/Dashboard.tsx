@@ -7,6 +7,7 @@ import ContentCalendar from "../components/ContentCalendar";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import LibraryView from "../components/LibraryView";
 import { Button } from "@/components/ui/button";
+import { usePurchasePremium } from "@/lib/stripe";
 import { 
   PenLine, 
   LayoutTemplate, 
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
   const [location, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("generate");
+  const { mutate: purchasePremium, isLoading: isPurchaseLoading } = usePurchasePremium();
 
   useEffect(() => {
     // Parse the tab from the current location
@@ -115,8 +117,10 @@ export default function Dashboard() {
               <Button 
                 className="w-full bg-gradient-to-r from-orange-500 to-purple-600 text-white hover:from-orange-600 hover:to-purple-700"
                 size="lg"
+                onClick={() => purchasePremium()}
+                disabled={isPurchaseLoading}
               >
-                Upgrade Now
+                {isPurchaseLoading ? "Processing..." : "Upgrade Now"}
               </Button>
             </div>
           </div>
