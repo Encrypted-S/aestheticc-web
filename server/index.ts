@@ -6,8 +6,8 @@ import { setupVite, serveStatic } from "./vite";
 const app = express();
 const server = createServer(app);
 
-// API server port configuration
-const PORT = 3002;  // Development port as per .replit
+// Standard Replit port configuration
+const PORT = 3000;
 const HOST = '0.0.0.0';
 
 async function main() {
