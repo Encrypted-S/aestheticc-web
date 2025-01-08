@@ -1,0 +1,14 @@
+
+run = "npm run dev"
+entrypoint = "server/index.ts"
+
+[nix]
+channel = "stable-22_11"
+
+[deployment]
+run = ["sh", "-c", "NODE_ENV=development PORT=5173 tsx watch --clear-screen=false server/index.ts"]
+build = ["npm", "run", "build"]
+
+[[ports]]
+localPort = 5173
+externalPort = 80
