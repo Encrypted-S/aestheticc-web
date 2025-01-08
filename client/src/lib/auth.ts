@@ -15,11 +15,12 @@ export function useUser() {
     queryKey: ["user"],
     queryFn: async () => {
       try {
-        const response = await fetch("/user", {
+        const response = await fetch("/api/user", {
           credentials: "include"
         });
 
         if (!response.ok) {
+          console.error("User fetch failed:", response.status, response.statusText);
           if (response.status === 401) return null;
           throw new Error("Failed to fetch user data");
         }
@@ -41,7 +42,7 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/logout", {
+      const response = await fetch("/api/logout", {
         method: "POST",
         credentials: "include"
       });
@@ -79,12 +80,10 @@ export function useRequireAuth() {
 
 export function useGoogleLogin() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const startGoogleLogin = async () => {
     try {
-      // Redirect to Google OAuth route
-      window.location.href = "/auth/google";
+      window.location.href = "/api/auth/google";
     } catch (error) {
       toast({
         title: "Login failed",

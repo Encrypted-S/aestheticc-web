@@ -26,12 +26,12 @@ export function registerRoutes(app: express.Express) {
   setupAuth(app);
 
   // Google OAuth routes
-  app.get("/auth/google", passport.authenticate("google", {
+  app.get("/api/auth/google", passport.authenticate("google", {
     scope: ["profile", "email"],
   }));
 
   app.get(
-    "/auth/google/callback",
+    "/api/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/login" }),
     (req, res) => {
       res.redirect("/dashboard");
@@ -39,9 +39,13 @@ export function registerRoutes(app: express.Express) {
   );
 
   // Basic authentication routes
-  app.post("/register", async (req, res) => {
+  app.post("/api/register", async (req, res) => {
     try {
       const { email, password, name } = req.body;
+
+      if (!email || !password || !name) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
 
       console.log("Registration attempt for email:", email);
 
@@ -57,7 +61,7 @@ export function registerRoutes(app: express.Express) {
 
       // Hash password and create user
       const salt = randomBytes(16).toString('hex');
-      const hashedPassword = (await scryptAsync(password, salt, 64)).toString('hex') + '.' + salt;
+      const hashedPassword = (await scryptAsync(password, salt, 64) as Buffer).toString('hex') + '.' + salt;
 
       console.log("Creating new user with email:", email);
       const [user] = await db
@@ -76,7 +80,11 @@ export function registerRoutes(app: express.Express) {
           console.error("Login after registration failed:", err);
           return res.status(500).json({ error: "Error logging in after registration" });
         }
-        return res.json({ user });
+        return res.json({ user: {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        }});
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -84,8 +92,14 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.post("/login", (req, res, next) => {
-    console.log("Login attempt received for email:", req.body.email);
+  app.post("/api/login", (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    console.log("Login attempt received for email:", email);
 
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) {
@@ -109,14 +123,15 @@ export function registerRoutes(app: express.Express) {
           user: {
             id: user.id,
             email: user.email,
-            name: user.name
+            name: user.name,
+            isPremium: user.isPremium || false
           }
         });
       });
     })(req, res, next);
   });
 
-  app.post("/logout", (req, res) => {
+  app.post("/api/logout", (req, res) => {
     const userEmail = (req.user as any)?.email;
     console.log("Logout attempt for user:", userEmail);
 
@@ -130,14 +145,19 @@ export function registerRoutes(app: express.Express) {
     });
   });
 
-  app.get("/user", (req, res) => {
+  app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    res.json(req.user);
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      isPremium: user.isPremium || false
+    });
   });
 
-  // Content generation route
   app.post("/generate-content", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });

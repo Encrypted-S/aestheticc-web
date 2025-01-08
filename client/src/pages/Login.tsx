@@ -21,10 +21,10 @@ export default function Login() {
     e.preventDefault();
     setErrorMessage(null);
     try {
-      const endpoint = isRegistering ? "/register" : "/login";
+      const endpoint = isRegistering ? "/api/register" : "/api/login";
       const body = isRegistering ? { email, password, name } : { email, password };
 
-      console.log("Submitting to endpoint:", endpoint);
+      console.log("Submitting auth request to:", endpoint);
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -35,13 +35,15 @@ export default function Login() {
         credentials: "include",
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Login error response:', { status: response.status, text: errorText });
-        throw new Error(errorText || "Authentication failed");
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Auth error:', { 
+          status: response.status, 
+          data 
+        });
+        throw new Error(data.error || "Authentication failed");
+      }
 
       if (isRegistering) {
         setErrorMessage("Account created successfully! You can now log in.");
@@ -129,6 +131,7 @@ export default function Login() {
                 : "Don't have an account? Sign up"}
             </button>
           </div>
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
