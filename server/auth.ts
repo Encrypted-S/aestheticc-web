@@ -73,7 +73,11 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
-          console.log("Authentication successful for user:", email);
+          console.log("Authentication successful for user:", email, "with id:", user.id);
+          req.session.save((err) => {
+            if (err) console.error("Session save error:", err);
+            else console.log("Session saved successfully");
+          });
           return done(null, user);
         } catch (error) {
           console.error("Authentication error:", error);
