@@ -1,19 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useGoogleLogin } from "../lib/auth";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
-  const { startGoogleLogin } = useGoogleLogin();
   const [location, setLocation] = useLocation();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const params = new URLSearchParams(location.split("?")[1]);
   const error = params.get("error");
   const verified = params.get("verified");
@@ -22,6 +21,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setIsLoading(true);
 
     try {
       const endpoint = isRegistering ? "/api/register" : "/api/login";
@@ -33,40 +33,37 @@ export default function Login() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json"
         },
         body: JSON.stringify(body),
         credentials: "include",
       });
 
-      let data;
       const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        data = { error: text };
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("Non-JSON response received:", await response.text());
+        throw new Error("Server returned an invalid response format");
       }
 
+      const data = await response.json();
+
       if (!response.ok) {
-        console.error('Auth error:', { 
-          status: response.status, 
-          data 
-        });
-        throw new Error(data.error || "Authentication failed - Please check your credentials");
+        throw new Error(data.error || "Authentication failed");
       }
 
       if (isRegistering) {
         setErrorMessage("Account created successfully! You can now log in.");
         setIsRegistering(false);
       } else {
-        // Invalidate and refetch user data before redirect
-        await queryClient.invalidateQueries({ queryKey: ["user"] });
-        await queryClient.fetchQuery({ queryKey: ["user"] });
+        // Update the query cache with user data from login response
+        queryClient.setQueryData(["user"], data.user);
         setLocation("/dashboard");
       }
     } catch (error) {
       console.error("Auth error:", error);
       setErrorMessage(error instanceof Error ? error.message : "An unexpected authentication error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,6 +105,7 @@ export default function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             )}
@@ -118,6 +116,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -127,10 +126,11 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full">
-              {isRegistering ? "Create Account" : "Sign in"}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Please wait..." : (isRegistering ? "Create Account" : "Sign in")}
             </Button>
           </form>
 
@@ -138,13 +138,13 @@ export default function Login() {
             <button
               onClick={() => setIsRegistering(!isRegistering)}
               className="text-sm text-primary hover:underline"
+              disabled={isLoading}
             >
               {isRegistering
                 ? "Already have an account? Sign in"
                 : "Don't have an account? Sign up"}
             </button>
           </div>
-
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -160,6 +160,7 @@ export default function Login() {
             onClick={startGoogleLogin}
             variant="outline"
             className="w-full py-6"
+            disabled={isLoading}
           >
             <div className="inline-flex items-center">
               <svg

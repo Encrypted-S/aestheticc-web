@@ -16,7 +16,7 @@ export function registerRoutes(app: express.Express) {
       : ['http://localhost:5173', 'http://localhost:3002'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   }));
 
   // Basic middleware - must come before routes
@@ -24,20 +24,25 @@ export function registerRoutes(app: express.Express) {
   app.use(express.urlencoded({ extended: true }));
 
   // Session configuration
-  app.use(session({
+  const sessionConfig: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-  }));
+  };
 
-  // Initialize authentication middleware
-  setupAuth(app);
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
+  app.use(session(sessionConfig));
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   // Create API router
   const apiRouter = express.Router();
@@ -69,7 +74,7 @@ export function registerRoutes(app: express.Express) {
             return res.status(500).json({ error: "Failed to create session" });
           }
 
-          console.log("User logged in:", user.email);
+          console.log("User logged in successfully:", user.email);
           return res.json({ 
             success: true,
             user: {
@@ -87,53 +92,19 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  // Google OAuth routes
-  apiRouter.get("/auth/google", passport.authenticate("google", {
-    scope: ["profile", "email"],
-  }));
-
-  apiRouter.get(
-    "/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/login" }),
-    (req, res) => {
-      res.redirect("/dashboard");
-    }
-  );
-
-  // Logout route
-  apiRouter.post("/logout", (req, res) => {
-    const userEmail = (req.user as any)?.email;
-    console.log("Logout request for:", userEmail);
-
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ error: "Logout failed" });
-      }
-
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Session destruction error:", err);
-          return res.status(500).json({ error: "Failed to destroy session" });
-        }
-        res.clearCookie('connect.sid');
-        console.log("User logged out:", userEmail);
-        res.json({ success: true });
-      });
-    });
-  });
-
-  // User info route
+  // User info route with session verification
   apiRouter.get("/user", (req, res) => {
     try {
-      console.log("User info request");
+      console.log("User info request - Session:", req.session);
+      console.log("User info request - Auth:", req.isAuthenticated());
+
       if (!req.isAuthenticated()) {
-        console.log("User not authenticated");
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       const user = req.user as any;
       console.log("Returning user info for:", user.email);
+
       res.json({
         success: true,
         user: {
@@ -149,42 +120,28 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  // Content generation route
-  apiRouter.post("/generate-content", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ 
-        success: false,
-        error: "Authentication required" 
-      });
-    }
+  // Logout route with session cleanup
+  apiRouter.post("/logout", (req, res) => {
+    const userEmail = (req.user as any)?.email;
+    console.log("Logout request for:", userEmail);
 
-    try {
-      const { topic, treatmentCategory, contentType, platform, tone, additionalContext } = req.body;
-
-      if (!topic || !treatmentCategory || !contentType || !platform || !tone) {
-        return res.status(400).json({
-          success: false,
-          error: "Missing required fields"
-        });
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Logout failed" });
       }
 
-      const content = await generateContent({
-        topic,
-        treatmentCategory,
-        contentType,
-        platform,
-        tone,
-        additionalContext
-      });
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({ error: "Failed to clear session" });
+        }
 
-      res.json({ success: true, content });
-    } catch (error) {
-      console.error("Content generation error:", error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : "An unexpected error occurred"
+        res.clearCookie('connect.sid');
+        console.log("User logged out successfully:", userEmail);
+        res.json({ success: true });
       });
-    }
+    });
   });
 
   // Mount API routes before any other middleware

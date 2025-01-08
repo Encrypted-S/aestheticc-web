@@ -12,10 +12,14 @@ const HOST = '0.0.0.0';
 
 async function main() {
   try {
-    // Register API routes first
+    console.log("Starting server initialization...");
+
+    // Register API routes first, before any static/Vite middleware
+    console.log("Registering API routes...");
     registerRoutes(app);
 
     // Then set up Vite or static serving
+    console.log("Setting up frontend serving...");
     if (process.env.NODE_ENV === 'production') {
       serveStatic(app);
     } else {

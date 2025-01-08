@@ -14,23 +14,20 @@ export function useUser() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const query = useQuery<User>({
+  const query = useQuery<User | null>({
     queryKey: ["user"],
     queryFn: async () => {
       try {
         console.log("Fetching user data...");
         const response = await fetch("/api/user", {
           credentials: "include",
-          headers: {
-            "Cache-Control": "no-cache",
-            "Accept": "application/json"
-          }
         });
 
         console.log("User data response status:", response.status);
 
         if (!response.ok) {
           if (response.status === 401) {
+            console.log("User not authenticated");
             return null;
           }
           throw new Error("Failed to fetch user data");
@@ -38,21 +35,14 @@ export function useUser() {
 
         const data = await response.json();
         console.log("User data received:", data);
-
-        if (!data.success || !data.user) {
-          return null;
-        }
         return data.user;
       } catch (error) {
         console.error("Error fetching user:", error);
         return null;
       }
     },
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retryDelay: 1000 // Wait 1 second between retries
+    retry: false
   });
 
   return query;
@@ -71,15 +61,13 @@ export function useLogout() {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Logout failed");
+        throw new Error("Logout failed");
       }
 
       return response.json();
     },
     onSuccess: () => {
       queryClient.setQueryData(["user"], null);
-      queryClient.invalidateQueries({ queryKey: ["user"] });
       setLocation("/login");
       toast({
         title: "Logged out successfully",
@@ -98,45 +86,25 @@ export function useLogout() {
 }
 
 export function useRequireAuth() {
-  const { data: user, isLoading, error } = useUser();
-  const [, setLocation] = useLocation();
+  const { data: user, isLoading } = useUser();
+  const [location, setLocation] = useLocation();
   const logout = useLogout();
 
   useEffect(() => {
-    console.log("useRequireAuth effect running:", { 
-      isLoading, 
-      user: user ? "present" : "absent", 
-      error: error ? "present" : "absent" 
-    });
+    if (location === '/login') {
+      // Don't redirect if we're already on the login page
+      return;
+    }
 
-    // Only redirect if we're not loading and there's no user
-    if (!isLoading && !user && !error) {
+    if (!isLoading && !user) {
       console.log("No authenticated user found, redirecting to login");
       setLocation("/login");
     }
-  }, [isLoading, user, error, setLocation]);
+  }, [isLoading, user, location, setLocation]);
 
   return { 
     user, 
     isLoading,
     logout: logout.mutate 
   };
-}
-
-export function useGoogleLogin() {
-  const { toast } = useToast();
-
-  const startGoogleLogin = async () => {
-    try {
-      window.location.href = "/api/auth/google";
-    } catch (error) {
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Failed to start login process",
-        variant: "destructive",
-      });
-    }
-  };
-
-  return { startGoogleLogin };
 }
