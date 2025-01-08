@@ -10,11 +10,13 @@ export type User = {
   isPremium: boolean;
 };
 
+const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3002`;
+
 export function useUser() {
   return useQuery<User>({
     queryKey: ["user"],
     queryFn: async () => {
-      const response = await fetch("/api/auth/user", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user`, {
         credentials: "include"
       });
       if (!response.ok) {
@@ -34,7 +36,7 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/auth/logout", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: "POST",
         credentials: "include"
       });
@@ -82,9 +84,8 @@ export function useGoogleLogin() {
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
 
-      const baseUrl = window.location.origin;
       const popup = window.open(
-        `${baseUrl}/api/auth/google`,
+        `${API_BASE_URL}/api/auth/google`,
         "GoogleLogin",
         `width=${width},height=${height},left=${left},top=${top}`
       );

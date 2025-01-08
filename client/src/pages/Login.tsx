@@ -17,6 +17,8 @@ export default function Login() {
   const error = params.get("error");
   const verified = params.get("verified");
 
+  const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3002`;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -24,9 +26,9 @@ export default function Login() {
       const endpoint = isRegistering ? "/api/auth/register" : "/api/auth/email-login";
       const body = isRegistering ? { email, password, name } : { email, password };
 
-      console.log("Submitting to endpoint:", endpoint);
+      console.log("Submitting to endpoint:", `${API_BASE_URL}${endpoint}`);
 
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3002${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -174,7 +176,7 @@ export default function Login() {
             <Button
               onClick={async () => {
                 try {
-                  const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3002/api/auth/dev-login`, {
+                  const response = await fetch(`${API_BASE_URL}/api/auth/dev-login`, {
                     method: "POST",
                     credentials: "include",
                   });
