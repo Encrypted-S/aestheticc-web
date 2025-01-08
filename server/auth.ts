@@ -61,6 +61,12 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
+          // Handle Google-authenticated users without passwords
+          if (user.google_id && !user.password) {
+            console.log("Google-authenticated user attempting password login:", email);
+            return done(null, false, { message: "Please use Google Sign In" });
+          }
+
           const isValid = await crypto.compare(password, user.password);
           if (!isValid) {
             console.log("Invalid password for user:", email);
@@ -94,19 +100,38 @@ export function setupAuth(app: Express) {
             });
 
             if (!user) {
-              console.log("Creating new user from Google profile");
-              const [newUser] = await db
-                .insert(users)
-                .values({
-                  email: profile.emails?.[0]?.value || "",
-                  name: profile.displayName,
-                  google_id: profile.id,
-                  avatar_url: profile.photos?.[0]?.value,
-                  password: await crypto.hash(randomBytes(32).toString("hex")),
-                  email_verified: true,
-                })
-                .returning();
-              user = newUser;
+              // Check if user exists with same email
+              user = await db.query.users.findFirst({
+                where: eq(users.email, profile.emails?.[0]?.value || ""),
+              });
+
+              if (user) {
+                // Update existing user with Google ID
+                const [updatedUser] = await db
+                  .update(users)
+                  .set({
+                    google_id: profile.id,
+                    avatar_url: profile.photos?.[0]?.value,
+                    email_verified: true,
+                  })
+                  .where(eq(users.id, user.id))
+                  .returning();
+                user = updatedUser;
+              } else {
+                // Create new user
+                const [newUser] = await db
+                  .insert(users)
+                  .values({
+                    email: profile.emails?.[0]?.value || "",
+                    name: profile.displayName,
+                    google_id: profile.id,
+                    avatar_url: profile.photos?.[0]?.value,
+                    password: await crypto.hash(randomBytes(32).toString("hex")),
+                    email_verified: true,
+                  })
+                  .returning();
+                user = newUser;
+              }
             }
 
             return done(null, user);
