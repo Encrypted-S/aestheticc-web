@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 // Initialize Stripe
-const stripePromise = loadStripe(process.env.STRIPE_PUBLIC_KEY!);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY!);
 
 export function usePremiumStatus() {
   return useQuery({
@@ -24,13 +24,20 @@ export function usePurchasePremium() {
     mutationFn: async () => {
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create checkout session");
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create checkout session");
       }
 
       const { url } = await response.json();
+      if (!url) throw new Error("No checkout URL received");
+
       window.location.href = url;
     },
     onError: (error) => {

@@ -10,7 +10,7 @@ import { generateVerificationToken, sendVerificationEmail, verifyEmail } from ".
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2023-10-16",
 });
 
 const PREMIUM_PRICE = 2999; // $29.99 in cents
@@ -23,11 +23,16 @@ export function registerRoutes(app: express.Router) {
 
   // Premium purchase endpoint
   app.post("/api/create-checkout-session", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
     try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = req.user as any;
+      if (!user?.email) {
+        return res.status(400).json({ error: "User email is required" });
+      }
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [
@@ -46,9 +51,9 @@ export function registerRoutes(app: express.Router) {
         mode: "payment",
         success_url: `${req.headers.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.origin}/payment-cancelled`,
-        customer_email: (req.user as any).email,
+        customer_email: user.email,
         metadata: {
-          userId: (req.user as any).id.toString(),
+          userId: user.id.toString(),
         },
       });
 

@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { usePurchasePremium } from "@/lib/stripe";
 
 export function PremiumPurchase() {
-  const { mutate: purchasePremium, isLoading } = usePurchasePremium();
+  const { mutate: purchasePremium, isPending } = usePurchasePremium();
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -26,10 +26,10 @@ export function PremiumPurchase() {
       <CardFooter>
         <Button 
           onClick={() => purchasePremium()} 
-          disabled={isLoading}
+          disabled={isPending}
           className="w-full"
         >
-          {isLoading ? "Processing..." : "Purchase Premium"}
+          {isPending ? "Processing..." : "Purchase Premium"}
         </Button>
       </CardFooter>
     </Card>
