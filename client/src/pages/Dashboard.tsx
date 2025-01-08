@@ -13,8 +13,10 @@ import {
   Calendar, 
   BarChart,
   LogOut,
-  ScrollText
+  ScrollText,
+  Sparkles
 } from "lucide-react";
+import cn from 'classnames';
 
 export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
@@ -63,6 +65,11 @@ export default function Dashboard() {
     { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-5 w-5" /> },
     { id: "calendar", label: "Calendar", icon: <Calendar className="h-5 w-5" /> },
     { id: "analytics", label: "Analytics", icon: <BarChart className="h-5 w-5" /> },
+    { 
+      id: "pro", 
+      label: "Become a Pro", 
+      icon: <Sparkles className="h-5 w-5" />
+    },
   ];
 
   const handleTabChange = (tabId: string) => {
@@ -83,6 +90,37 @@ export default function Dashboard() {
         return <ContentCalendar />;
       case "analytics":
         return <AnalyticsDashboard />;
+      case "pro":
+        return (
+          <div className="max-w-4xl mx-auto space-y-8">
+            <h1 className="text-3xl font-bold text-center">Upgrade to Pro</h1>
+            <div className="grid gap-8 p-6 border rounded-lg bg-card">
+              <div className="space-y-4">
+                <h2 className="text-2xl font-semibold">Premium Features</h2>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-orange-500" />
+                    <span>Advanced AI content generation</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    <span>Unlimited social media posts</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-pink-500" />
+                    <span>Priority support</span>
+                  </li>
+                </ul>
+              </div>
+              <Button 
+                className="w-full bg-gradient-to-r from-orange-500 to-purple-600 text-white hover:from-orange-600 hover:to-purple-700"
+                size="lg"
+              >
+                Upgrade Now
+              </Button>
+            </div>
+          </div>
+        );
       default:
         return <ContentGenerator />;
     }
