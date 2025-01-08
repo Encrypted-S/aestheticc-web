@@ -29,13 +29,13 @@ async function startServer() {
     // Basic middleware
     app.use(express.json());
     app.use(cookieParser());
+
+    // Updated CORS configuration
     app.use(cors({
-      origin: process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5173' 
-        : process.env.APP_URL,
+      origin: ['http://localhost:5173', 'http://localhost:3002'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization']
+      allowedHeaders: ['Content-Type', 'Authorization'],
     }));
 
     console.log("Setting up session store...");
@@ -54,15 +54,11 @@ async function startServer() {
       saveUninitialized: false,
       cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: false, // Set to false in development
+        sameSite: 'lax' as const,
         httpOnly: true
       }
     };
-
-    if (process.env.NODE_ENV === 'production') {
-      app.set('trust proxy', 1);
-    }
 
     app.use(session(sessionConfig));
 

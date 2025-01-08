@@ -26,7 +26,7 @@ export default function Login() {
 
       console.log("Submitting to endpoint:", endpoint);
 
-      const response = await fetch(`http://localhost:3002${endpoint}`, {
+      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3002${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,12 +35,11 @@ export default function Login() {
         credentials: "include",
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Authentication failed");
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Authentication failed");
+      }
 
       if (isRegistering) {
         setErrorMessage("Please check your email to verify your account");
@@ -175,7 +174,7 @@ export default function Login() {
             <Button
               onClick={async () => {
                 try {
-                  const response = await fetch("http://localhost:3002/api/auth/dev-login", {
+                  const response = await fetch(`${window.location.protocol}//${window.location.hostname}:3002/api/auth/dev-login`, {
                     method: "POST",
                     credentials: "include",
                   });
