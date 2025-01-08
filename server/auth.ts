@@ -45,26 +45,35 @@ export function setupAuth(app: Express) {
 
           // Check against hardcoded development credentials
           if (email === DEV_EMAIL && password === DEV_PASSWORD) {
-            const existingUser = await db.query.users.findFirst({
+            console.log("Dev credentials match, checking for existing user");
+
+            let user = await db.query.users.findFirst({
               where: eq(users.email, email),
             });
 
-            if (existingUser) {
-              return done(null, existingUser);
+            if (!user) {
+              console.log("Creating new dev user");
+              try {
+                const [newUser] = await db.insert(users)
+                  .values({
+                    email: DEV_EMAIL,
+                    name: "Development User",
+                    emailVerified: true
+                  })
+                  .returning();
+                user = newUser;
+                console.log("Dev user created successfully:", user);
+              } catch (error) {
+                console.error("Failed to create dev user:", error);
+                return done(null, false, { message: "Failed to create development user" });
+              }
             }
 
-            // Create dev user if doesn't exist
-            const [user] = await db.insert(users)
-              .values({
-                email: DEV_EMAIL,
-                name: "Development User",
-                emailVerified: true
-              })
-              .returning();
-
+            console.log("Dev user authenticated successfully:", user);
             return done(null, user);
           }
 
+          console.log("Invalid credentials provided");
           return done(null, false, { message: "Invalid email or password" });
         } catch (error) {
           console.error("Authentication error:", error);
