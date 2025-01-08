@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { PremiumPurchase } from "@/components/PremiumPurchase";
 import { usePremiumStatus } from "@/lib/stripe";
 
@@ -17,12 +17,12 @@ function App() {
             ) : isPremium ? (
               <p className="text-green-600">You have premium access!</p>
             ) : (
-              <a 
-                href="/premium" 
+              <Link 
+                href="/premium"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md"
               >
                 Upgrade to Premium
-              </a>
+              </Link>
             )}
           </div>
         </Route>
