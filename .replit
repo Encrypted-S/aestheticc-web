@@ -7,7 +7,7 @@ modules = ["nodejs-20"]
 channel = "stable-22_11"
 
 [deployment]
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "npm install && npm run dev"]
 build = ["npm", "run", "build"]
 
 [[ports]]
@@ -30,16 +30,8 @@ externalPort = 80
 runButton = "Project"
 
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
 name = "Start application"
+mode = "parallel"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -51,4 +43,13 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 3000
+waitForPort = 3002
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"

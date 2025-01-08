@@ -6,8 +6,8 @@ import { setupVite, serveStatic } from "./vite";
 const app = express();
 const server = createServer(app);
 
-// Standard Replit port configuration
-const PORT = 3000;
+// Use environment provided port or fallback to 3002 to avoid conflicts
+const PORT = process.env.PORT || 3002;
 const HOST = '0.0.0.0';
 
 async function main() {
@@ -21,7 +21,7 @@ async function main() {
     registerRoutes(app);
 
     server.listen(PORT, HOST, () => {
-      console.log(`API Server running on port ${PORT}`);
+      console.log(`Server running on http://${HOST}:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
     });
 
