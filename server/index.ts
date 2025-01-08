@@ -66,25 +66,6 @@ async function startServer() {
     app.use(passport.initialize());
     app.use(passport.session());
 
-    // Passport serialization
-    passport.serializeUser((user: any, done) => {
-      console.log("Serializing user:", user.id);
-      done(null, user.id);
-    });
-
-    passport.deserializeUser(async (id: number, done) => {
-      try {
-        console.log("Deserializing user:", id);
-        const user = await db.query.users.findFirst({
-          where: eq(users.id, id)
-        });
-        done(null, user);
-      } catch (err) {
-        console.error("User deserialization error:", err);
-        done(err);
-      }
-    });
-
     // Register routes
     console.log("Registering routes...");
     registerRoutes(app);

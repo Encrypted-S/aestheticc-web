@@ -10,10 +10,10 @@ import cors from "cors";
 export function registerRoutes(app: express.Router) {
   // Enable CORS for all routes
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? 'https://your-production-domain.com' 
-      : 'http://localhost:5173',
-    credentials: true
+    origin: ['http://localhost:5173', 'http://localhost:3002'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
   // Initialize passport
@@ -21,10 +21,24 @@ export function registerRoutes(app: express.Router) {
   app.use(passportMiddleware.initialize());
   app.use(passportMiddleware.session());
 
-  // Core Authentication Routes
-  app.post("/api/auth/email-login", (req, res, next) => {
-    console.log("Login attempt received:", req.body.email); // Debug log
+  // Authentication Routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const user = await registerUser(req.body);
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error after registration:", err);
+          return res.status(500).json({ error: "Error logging in after registration" });
+        }
+        res.json({ message: "Registration successful" });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({ error: error instanceof Error ? error.message : "Registration failed" });
+    }
+  });
 
+  app.post("/api/auth/email-login", (req, res, next) => {
     passport.authenticate("local", (err: Error, user: any, info: { message?: string }) => {
       if (err) {
         console.error("Authentication error:", err);
@@ -54,8 +68,6 @@ export function registerRoutes(app: express.Router) {
   });
 
   app.get("/api/auth/user", (req, res) => {
-    console.log("User session check:", req.isAuthenticated()); // Debug log
-
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -70,9 +82,41 @@ export function registerRoutes(app: express.Router) {
 
   app.post("/api/auth/logout", (req, res) => {
     req.logout(() => {
-      res.sendStatus(200);
+      res.json({ message: "Logged out successfully" });
     });
   });
+
+  if (process.env.NODE_ENV === 'development') {
+    app.post("/api/auth/dev-login", async (req, res) => {
+      try {
+        // Find or create a test user
+        let user = await db.query.users.findFirst({
+          where: eq(users.email, 'test@example.com'),
+        });
+
+        if (!user) {
+          const [newUser] = await db.insert(users).values({
+            email: 'test@example.com',
+            name: 'Test User',
+            password: 'test-password-hash',
+            subscriptionStatus: 'free',
+            emailVerified: true,
+          }).returning();
+          user = newUser;
+        }
+
+        req.login(user, (err) => {
+          if (err) {
+            return res.status(500).json({ error: "Dev login failed" });
+          }
+          res.json({ message: "Dev login successful" });
+        });
+      } catch (error) {
+        console.error("Dev login error:", error);
+        res.status(500).json({ error: "Dev login failed" });
+      }
+    });
+  }
 
   // Content generation route
   app.post("/api/generate-content", async (req, res) => {
