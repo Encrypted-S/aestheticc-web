@@ -37,6 +37,7 @@ export default function Login() {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Login error response:', { status: response.status, text: errorText });
         throw new Error(errorText || "Authentication failed");
       }
 

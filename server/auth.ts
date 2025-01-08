@@ -61,6 +61,8 @@ export function setupAuth(app: Express) {
             return done(null, false, { message: "Invalid email or password" });
           }
 
+          console.log("Found user:", { id: user.id, email: user.email, hasPassword: !!user.password });
+
           // Handle users without passwords or undefined password
           if (!user.password) {
             console.log("User without password attempting login:", email);
