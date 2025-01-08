@@ -10,13 +10,11 @@ export type User = {
   isPremium: boolean;
 };
 
-const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3002`;
-
 export function useUser() {
   return useQuery<User>({
     queryKey: ["user"],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/user`, {
+      const response = await fetch("/api/user", {
         credentials: "include"
       });
       if (!response.ok) {
@@ -36,7 +34,7 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      const response = await fetch("/api/logout", {
         method: "POST",
         credentials: "include"
       });
@@ -78,14 +76,13 @@ export function useGoogleLogin() {
   const startGoogleLogin = async () => {
     try {
       console.log("Initiating Google OAuth login flow");
-      // Google OAuth popup window settings
       const width = 500;
       const height = 600;
       const left = window.screenX + (window.outerWidth - width) / 2;
       const top = window.screenY + (window.outerHeight - height) / 2.5;
 
       const popup = window.open(
-        `${API_BASE_URL}/api/auth/google`,
+        "/api/auth/google",
         "GoogleLogin",
         `width=${width},height=${height},left=${left},top=${top}`
       );
@@ -94,7 +91,6 @@ export function useGoogleLogin() {
         throw new Error("Popup blocked");
       }
 
-      // Handle the OAuth callback
       const messageHandler = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
 
