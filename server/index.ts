@@ -63,8 +63,8 @@ async function startServer() {
 
     app.use(session(sessionConfig));
 
-    console.log("Initializing Passport...");
     // Initialize Passport
+    console.log("Initializing Passport...");
     app.use(passport.initialize());
     app.use(passport.session());
 
@@ -90,12 +90,6 @@ async function startServer() {
     // Register routes
     console.log("Registering routes...");
     registerRoutes(app);
-
-    // Error handling middleware
-    app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-      console.error('Error:', err);
-      res.status(500).json({ error: err.message || "Internal server error" });
-    });
 
     // Setup Vite or static files
     const server = createServer(app);

@@ -23,6 +23,7 @@ type MenuItem = {
   id: string;
   label: string;
   icon: JSX.Element;
+  requiresPremium?: boolean;
 };
 
 export default function Dashboard() {
@@ -30,6 +31,10 @@ export default function Dashboard() {
   const [location, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("generate");
   const { data: isPremium } = usePremiumStatus();
+
+  console.log("Dashboard rendering with user:", user);
+  console.log("Current tab:", currentTab);
+  console.log("Premium status:", isPremium);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.split("?")[1]);
@@ -64,7 +69,7 @@ export default function Dashboard() {
     }
   };
 
-  const baseMenuItems: MenuItem[] = [
+  const menuItems: MenuItem[] = [
     { id: "generate", label: "Generate Post", icon: <PenLine className="h-5 w-5" /> },
     { id: "library", label: "Library", icon: <ScrollText className="h-5 w-5" /> },
     { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-5 w-5" /> },
@@ -72,16 +77,23 @@ export default function Dashboard() {
     { id: "analytics", label: "Analytics", icon: <BarChart className="h-5 w-5" /> },
   ];
 
-  const menuItems: MenuItem[] = isPremium 
-    ? baseMenuItems 
-    : [...baseMenuItems, { id: "premium", label: "Upgrade to Premium", icon: <Crown className="h-5 w-5 text-yellow-500" /> }];
+  // Add Premium tab for non-premium users
+  if (!isPremium) {
+    menuItems.push({
+      id: "premium",
+      label: "Upgrade to Premium",
+      icon: <Crown className="h-5 w-5 text-yellow-500" />,
+    });
+  }
 
   const handleTabChange = (tabId: string) => {
+    console.log("Changing tab to:", tabId);
     setCurrentTab(tabId);
     setLocation(`/dashboard?tab=${tabId}`);
   };
 
   const renderContent = () => {
+    console.log("Rendering content for tab:", currentTab);
     switch (currentTab) {
       case "generate":
         return <ContentGenerator />;
