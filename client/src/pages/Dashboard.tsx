@@ -6,7 +6,6 @@ import TemplateLibrary from "../components/TemplateLibrary";
 import ContentCalendar from "../components/ContentCalendar";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import LibraryView from "../components/LibraryView";
-import { PremiumPurchase } from "@/components/PremiumPurchase";
 import { Button } from "@/components/ui/button";
 import { 
   PenLine, 
@@ -14,29 +13,16 @@ import {
   Calendar, 
   BarChart,
   LogOut,
-  ScrollText,
-  Crown
+  ScrollText
 } from "lucide-react";
-import { usePremiumStatus } from "@/lib/stripe";
-
-type MenuItem = {
-  id: string;
-  label: string;
-  icon: JSX.Element;
-  requiresPremium?: boolean;
-};
 
 export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
   const [location, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("generate");
-  const { data: isPremium } = usePremiumStatus();
-
-  console.log("Dashboard rendering with user:", user);
-  console.log("Current tab:", currentTab);
-  console.log("Premium status:", isPremium);
 
   useEffect(() => {
+    // Parse the tab from the current location
     const searchParams = new URLSearchParams(location.split("?")[1]);
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && tabFromUrl !== currentTab) {
@@ -44,6 +30,7 @@ export default function Dashboard() {
     }
   }, [location]);
 
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -55,6 +42,7 @@ export default function Dashboard() {
     );
   }
 
+  // If no user is found after loading completes, render nothing
   if (!user) {
     console.log("No user found in Dashboard, redirecting...");
     return null;
@@ -69,7 +57,7 @@ export default function Dashboard() {
     }
   };
 
-  const menuItems: MenuItem[] = [
+  const menuItems = [
     { id: "generate", label: "Generate Post", icon: <PenLine className="h-5 w-5" /> },
     { id: "library", label: "Library", icon: <ScrollText className="h-5 w-5" /> },
     { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-5 w-5" /> },
@@ -77,23 +65,13 @@ export default function Dashboard() {
     { id: "analytics", label: "Analytics", icon: <BarChart className="h-5 w-5" /> },
   ];
 
-  // Add Premium tab for non-premium users
-  if (!isPremium) {
-    menuItems.push({
-      id: "premium",
-      label: "Upgrade to Premium",
-      icon: <Crown className="h-5 w-5 text-yellow-500" />,
-    });
-  }
-
   const handleTabChange = (tabId: string) => {
-    console.log("Changing tab to:", tabId);
     setCurrentTab(tabId);
     setLocation(`/dashboard?tab=${tabId}`);
   };
 
   const renderContent = () => {
-    console.log("Rendering content for tab:", currentTab);
+    console.log("Rendering tab:", currentTab);
     switch (currentTab) {
       case "generate":
         return <ContentGenerator />;
@@ -105,8 +83,6 @@ export default function Dashboard() {
         return <ContentCalendar />;
       case "analytics":
         return <AnalyticsDashboard />;
-      case "premium":
-        return <PremiumPurchase />;
       default:
         return <ContentGenerator />;
     }
@@ -120,12 +96,6 @@ export default function Dashboard() {
           {/* User section */}
           <div className="p-4 border-b">
             <h2 className="font-semibold truncate">Welcome, {user.name}</h2>
-            {isPremium && (
-              <span className="text-sm text-yellow-500 flex items-center gap-1">
-                <Crown className="h-4 w-4" />
-                Premium Member
-              </span>
-            )}
           </div>
 
           {/* Main navigation */}
@@ -135,7 +105,7 @@ export default function Dashboard() {
                 <Button
                   key={item.id}
                   variant={currentTab === item.id ? "secondary" : "ghost"}
-                  className={`w-full justify-start gap-3 ${item.id === "premium" ? "text-yellow-500 hover:text-yellow-600" : ""}`}
+                  className="w-full justify-start gap-3"
                   onClick={() => handleTabChange(item.id)}
                 >
                   {item.icon}
