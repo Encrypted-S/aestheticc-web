@@ -7,6 +7,9 @@ import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
 import passport from "passport";
 import multer from "multer";
+import { Blob } from "node:buffer";
+import { FormData } from "node-fetch";
+import fetch from "node-fetch";
 
 // Configure multer for memory storage
 const upload = multer({ 
@@ -39,7 +42,7 @@ export function registerRoutes(app: express.Express) {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
-  // Session configuration - simplified for development
+  // Session configuration
   app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: true,
@@ -207,7 +210,10 @@ export function registerRoutes(app: express.Express) {
     try {
       // Create form data for OpenAI
       const formData = new FormData();
-      formData.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }));
+
+      // Create a Buffer from the file data and convert it to Blob
+      const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+      formData.append('file', audioBlob, 'audio.wav');
       formData.append('model', 'whisper-1');
 
       // Send to OpenAI
@@ -220,6 +226,8 @@ export function registerRoutes(app: express.Express) {
       });
 
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error('OpenAI API Error:', errorData);
         throw new Error('Failed to transcribe audio');
       }
 

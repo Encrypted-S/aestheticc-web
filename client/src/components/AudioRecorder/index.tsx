@@ -4,36 +4,40 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mic, Square, Loader2 } from "lucide-react";
 
-const AudioRecorder = () => {
+interface AudioRecorderProps {
+  onTranscriptionComplete?: (text: string) => void;
+}
+
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState('');
   const [audioURL, setAudioURL] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (e) => {
+      mediaRecorder.ondataavailable = (e: BlobEvent) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
       };
 
-      mediaRecorderRef.current.onstop = () => {
+      mediaRecorder.onstop = () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioURL(audioUrl);
-        // Here you would typically send the audioBlob to your backend
-        // processAudio(audioBlob);
+        processAudio(audioBlob);
       };
 
-      mediaRecorderRef.current.start();
+      mediaRecorder.start();
       setIsRecording(true);
       setError('');
     } catch (err) {
@@ -45,12 +49,12 @@ const AudioRecorder = () => {
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      mediaRecorderRef.current.stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       setIsRecording(false);
     }
   };
 
-  const processAudio = async (audioBlob) => {
+  const processAudio = async (audioBlob: Blob) => {
     setIsProcessing(true);
     try {
       // Convert blob to file
@@ -61,8 +65,8 @@ const AudioRecorder = () => {
       formData.append('file', file);
       formData.append('model', 'whisper-1');
 
-      // Send to your API endpoint that will forward to OpenAI
-      const response = await fetch('/api/transcribe', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+      const response = await fetch(`${API_URL}/api/transcribe`, {
         method: 'POST',
         body: formData
       });
@@ -73,8 +77,6 @@ const AudioRecorder = () => {
 
       const data = await response.json();
 
-      // Here you can emit the transcribed text to a parent component
-      // or process it further as needed
       if (onTranscriptionComplete) {
         onTranscriptionComplete(data.text);
       }
