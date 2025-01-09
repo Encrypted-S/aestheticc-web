@@ -10,6 +10,7 @@ interface Recording {
   url: string;
   blob: Blob;
   isProcessing?: boolean;
+  transcription?: string;
 }
 
 interface AudioRecorderProps {
@@ -91,6 +92,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
       }
 
       const data = await response.json();
+      setRecordings(prev => prev.map(rec => 
+        rec.id === recording.id ? { ...rec, transcription: data.text } : rec
+      ));
       if (onTranscriptionComplete) {
         onTranscriptionComplete(data.text);
       }
@@ -136,21 +140,28 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
             <div className="space-y-4">
               <h3 className="font-medium">Recordings</h3>
               {recordings.map((recording) => (
-                <div key={recording.id} className="flex items-center gap-4 p-2 border rounded">
-                  <audio src={recording.url} controls className="flex-1" />
-                  <Button
-                    onClick={() => processAudio(recording)}
-                    disabled={recording.isProcessing}
-                  >
-                    {recording.isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing
-                      </>
-                    ) : (
-                      'Process Audio'
-                    )}
-                  </Button>
+                <div key={recording.id} className="space-y-2">
+                  <div className="flex items-center gap-4 p-2 border rounded">
+                    <audio src={recording.url} controls className="flex-1" />
+                    <Button
+                      onClick={() => processAudio(recording)}
+                      disabled={recording.isProcessing}
+                    >
+                      {recording.isProcessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing
+                        </>
+                      ) : (
+                        'Process Audio'
+                      )}
+                    </Button>
+                  </div>
+                  {recording.transcription && (
+                    <div className="p-2 bg-muted rounded">
+                      <p className="text-sm">{recording.transcription}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
