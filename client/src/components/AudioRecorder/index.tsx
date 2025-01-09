@@ -1,8 +1,16 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mic, Square, Loader2 } from "lucide-react";
+
+interface Recording {
+  id: string;
+  url: string;
+  blob: Blob;
+  isProcessing?: boolean;
+}
 
 interface AudioRecorderProps {
   onTranscriptionComplete?: (text: string) => void;
@@ -11,8 +19,7 @@ interface AudioRecorderProps {
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState('');
-  const [audioURL, setAudioURL] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -33,8 +40,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
-        setAudioURL(audioUrl);
-        processAudio(audioBlob);
+        const newRecording: Recording = {
+          id: Date.now().toString(),
+          url: audioUrl,
+          blob: audioBlob
+        };
+        setRecordings(prev => [...prev, newRecording]);
       };
 
       mediaRecorder.start();
@@ -54,18 +65,18 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
     }
   };
 
-  const processAudio = async (audioBlob: Blob) => {
-    setIsProcessing(true);
-    try {
-      // Convert blob to file
-      const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+  const processAudio = async (recording: Recording) => {
+    setRecordings(prev => prev.map(rec => 
+      rec.id === recording.id ? { ...rec, isProcessing: true } : rec
+    ));
 
-      // Create form data
+    try {
+      const file = new File([recording.blob], 'recording.wav', { type: 'audio/wav' });
       const formData = new FormData();
       formData.append('file', file);
       formData.append('model', 'whisper-1');
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5173';
       const response = await fetch(`${API_URL}/api/transcribe`, {
         method: 'POST',
         body: formData,
@@ -76,21 +87,20 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Transcription error:', errorText);
         throw new Error(`Failed to transcribe audio: ${errorText}`);
       }
 
       const data = await response.json();
-
       if (onTranscriptionComplete) {
         onTranscriptionComplete(data.text);
       }
-
-      setIsProcessing(false);
     } catch (err) {
       setError('Error processing audio. Please try again.');
-      setIsProcessing(false);
       console.error('Error:', err);
+    } finally {
+      setRecordings(prev => prev.map(rec => 
+        rec.id === recording.id ? { ...rec, isProcessing: false } : rec
+      ));
     }
   };
 
@@ -122,16 +132,27 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
             )}
           </div>
 
-          {isProcessing && (
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Processing audio...</span>
-            </div>
-          )}
-
-          {audioURL && (
-            <div className="mt-4">
-              <audio src={audioURL} controls className="w-full" />
+          {recordings.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-medium">Recordings</h3>
+              {recordings.map((recording) => (
+                <div key={recording.id} className="flex items-center gap-4 p-2 border rounded">
+                  <audio src={recording.url} controls className="flex-1" />
+                  <Button
+                    onClick={() => processAudio(recording)}
+                    disabled={recording.isProcessing}
+                  >
+                    {recording.isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing
+                      </>
+                    ) : (
+                      'Process Audio'
+                    )}
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
 
