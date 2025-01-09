@@ -226,16 +226,19 @@ export function registerRoutes(app: express.Express) {
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('OpenAI API Error:', errorData);
-        throw new Error('Failed to transcribe audio');
+        const errorText = await response.text();
+        console.error('OpenAI API Error:', errorText);
+        throw new Error(`OpenAI API Error: ${errorText}`);
       }
 
       const data = await response.json();
       return res.json(data);
     } catch (error) {
-      console.error('Error:', error);
-      return res.status(500).json({ error: 'Failed to process audio' });
+      console.error('Transcription error:', error);
+      return res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Failed to process audio',
+        details: error
+      });
     }
   });
 

@@ -65,14 +65,19 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
       formData.append('file', file);
       formData.append('model', 'whisper-1');
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5173';
       const response = await fetch(`${API_URL}/api/transcribe`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to transcribe audio');
+        const errorText = await response.text();
+        console.error('Transcription error:', errorText);
+        throw new Error(`Failed to transcribe audio: ${errorText}`);
       }
 
       const data = await response.json();
