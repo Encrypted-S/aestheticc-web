@@ -93,7 +93,7 @@ export function setupAuth(app: Express) {
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
           callbackURL: process.env.NODE_ENV === 'production'
             ? "https://aestheticc-web.replit.app/api/auth/google/callback"
-            : "http://localhost:5173/api/auth/google/callback",
+            : "https://aestheticc-web.replit.app/api/auth/google/callback",
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
