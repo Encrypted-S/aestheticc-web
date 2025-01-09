@@ -76,7 +76,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onTranscriptionComplete }
       formData.append('file', file);
       formData.append('model', 'whisper-1');
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5173';
+      const API_URL = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.host}`;
       const response = await fetch(`${API_URL}/api/transcribe`, {
         method: 'POST',
         body: formData,
