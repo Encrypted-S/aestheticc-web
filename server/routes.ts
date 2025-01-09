@@ -36,7 +36,7 @@ export function registerRoutes(app: express.Express) {
   app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
       ? process.env.REPLIT_ORIGIN 
-      : 'http://localhost:5173',
+      : 'http://0.0.0.0:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
