@@ -7,7 +7,7 @@ const app = express();
 const server = createServer(app);
 
 // Standard port configuration for Express backend
-const PORT = 3000;
+const PORT = 80;
 const HOST = '0.0.0.0';
 
 async function main() {
