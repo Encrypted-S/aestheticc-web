@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import session from "express-session";
 import { db } from "../db";
-import { users } from "@db/schema";
+import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
 
