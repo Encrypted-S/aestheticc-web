@@ -33,8 +33,9 @@ export function useUser() {
         return null;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: false
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    retry: false,
+    refetchOnWindowFocus: false
   });
 
   return query;
@@ -60,6 +61,7 @@ export function useLogout() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["user"], null);
+      queryClient.removeQueries({ queryKey: ["user"] });
       setLocation("/login");
       toast({
         title: "Logged out successfully",
@@ -78,15 +80,14 @@ export function useLogout() {
 
 export function useRequireAuth() {
   const { data: user, isLoading } = useUser();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const logout = useLogout();
 
   useEffect(() => {
-    // Only redirect if not loading, no user, and not already on login page
-    if (!isLoading && !user && window.location.pathname !== '/login') {
+    if (!isLoading && !user && location !== '/login') {
       setLocation("/login");
     }
-  }, [isLoading, user, setLocation]);
+  }, [isLoading, user, location, setLocation]);
 
   return { 
     user, 

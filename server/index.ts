@@ -14,7 +14,7 @@ async function main() {
   try {
     console.log("Starting server initialization...");
 
-    // Add body parsing middleware before routes
+    // Basic middleware setup
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
@@ -29,6 +29,12 @@ async function main() {
     } else {
       await setupVite(app, server);
     }
+
+    // Error handling middleware must be after all other middleware and routes
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      console.error('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    });
 
     server.listen(PORT, HOST, () => {
       console.log(`Server running on http://${HOST}:${PORT}`);
