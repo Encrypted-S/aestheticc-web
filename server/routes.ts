@@ -29,32 +29,23 @@ export function registerRoutes(app: express.Express) {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
-  // Basic middleware setup
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // Session configuration with proper security settings
+  // Session configuration - simplified for development
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    name: 'sessionId',
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Set to true in production
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   }));
 
-  if (process.env.NODE_ENV === 'production') {
-    app.set('trust proxy', 1);
-  }
-
   // Create API router
   const apiRouter = express.Router();
 
-  // Login route
+  // Login route - simplified for hardcoded email
   apiRouter.post("/login", (req, res) => {
     try {
       const { email } = req.body;
@@ -69,10 +60,6 @@ export function registerRoutes(app: express.Express) {
       };
 
       // Store user in session
-      if (!req.session) {
-        throw new Error("Session middleware not properly initialized");
-      }
-
       req.session.user = testUser;
       console.log("User stored in session:", testUser);
 
@@ -88,7 +75,7 @@ export function registerRoutes(app: express.Express) {
 
   // User info route
   apiRouter.get("/user", (req, res) => {
-    if (!req.session || !req.session.user) {
+    if (!req.session.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
@@ -100,10 +87,6 @@ export function registerRoutes(app: express.Express) {
 
   // Logout route
   apiRouter.post("/logout", (req, res) => {
-    if (!req.session) {
-      return res.status(500).json({ error: "Session not initialized" });
-    }
-
     req.session.destroy((err) => {
       if (err) {
         console.error("Session destruction error:", err);
