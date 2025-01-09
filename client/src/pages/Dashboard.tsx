@@ -20,25 +20,10 @@ import {
 
 export default function Dashboard() {
   const { user, isLoading, logout } = useRequireAuth();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [currentTab, setCurrentTab] = useState("generate");
 
-  useEffect(() => {
-    // Debug logging
-    console.log("Dashboard mount - Auth state:", { 
-      user: user ? "present" : "absent", 
-      isLoading 
-    });
-  }, [user, isLoading]);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.split("?")[1]);
-    const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && tabFromUrl !== currentTab) {
-      setCurrentTab(tabFromUrl);
-    }
-  }, [location]);
-
+  // Wait for authentication to complete before rendering
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -50,21 +35,15 @@ export default function Dashboard() {
     );
   }
 
+  // useRequireAuth will handle the redirect to login if not authenticated
   if (!user) {
-    console.log("Dashboard - No user found, but not redirecting (useRequireAuth will handle redirect)");
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-2">Verifying authentication...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const handleLogout = async () => {
     try {
       await logout();
+      // Redirect is handled by useRequireAuth after logout
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -89,7 +68,6 @@ export default function Dashboard() {
   };
 
   const renderContent = () => {
-    console.log("Rendering tab:", currentTab);
     switch (currentTab) {
       case "generate":
         return <ContentGenerator />;

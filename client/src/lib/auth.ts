@@ -11,30 +11,22 @@ export type User = {
 };
 
 export function useUser() {
-  const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
-
   const query = useQuery<User | null>({
     queryKey: ["user"],
     queryFn: async () => {
       try {
-        console.log("Fetching user data...");
         const response = await fetch("/api/user", {
           credentials: "include",
         });
 
-        console.log("User data response status:", response.status);
-
         if (!response.ok) {
           if (response.status === 401) {
-            console.log("User not authenticated");
             return null;
           }
           throw new Error("Failed to fetch user data");
         }
 
         const data = await response.json();
-        console.log("User data received:", data);
         return data.user;
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -75,7 +67,6 @@ export function useLogout() {
       });
     },
     onError: (error) => {
-      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
@@ -87,20 +78,15 @@ export function useLogout() {
 
 export function useRequireAuth() {
   const { data: user, isLoading } = useUser();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const logout = useLogout();
 
   useEffect(() => {
-    if (location === '/login') {
-      // Don't redirect if we're already on the login page
-      return;
-    }
-
-    if (!isLoading && !user) {
-      console.log("No authenticated user found, redirecting to login");
+    // Only redirect if not loading, no user, and not already on login page
+    if (!isLoading && !user && window.location.pathname !== '/login') {
       setLocation("/login");
     }
-  }, [isLoading, user, location, setLocation]);
+  }, [isLoading, user, setLocation]);
 
   return { 
     user, 

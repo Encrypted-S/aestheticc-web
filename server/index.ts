@@ -14,6 +14,10 @@ async function main() {
   try {
     console.log("Starting server initialization...");
 
+    // Add body parsing middleware before routes
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
     // Register API routes first, before any static/Vite middleware
     console.log("Registering API routes...");
     registerRoutes(app);
