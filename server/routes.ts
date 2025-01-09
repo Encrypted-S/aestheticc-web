@@ -6,6 +6,15 @@ import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
 import passport from "passport";
+import multer from "multer";
+
+// Configure multer for memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25 MB limit
+  }
+});
 
 // Extend express-session types to include our user object
 declare module 'express-session' {
@@ -186,6 +195,39 @@ export function registerRoutes(app: express.Express) {
     } catch (error) {
       console.error("Error creating post:", error);
       res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  // Transcription endpoint
+  apiRouter.post('/transcribe', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No audio file provided' });
+    }
+
+    try {
+      // Create form data for OpenAI
+      const formData = new FormData();
+      formData.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }));
+      formData.append('model', 'whisper-1');
+
+      // Send to OpenAI
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to transcribe audio');
+      }
+
+      const data = await response.json();
+      return res.json(data);
+    } catch (error) {
+      console.error('Error:', error);
+      return res.status(500).json({ error: 'Failed to process audio' });
     }
   });
 
