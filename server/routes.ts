@@ -98,6 +98,27 @@ export function registerRoutes(app: express.Express) {
     });
   });
 
+  // Content generation endpoint
+  apiRouter.post("/generate-content", async (req, res) => {
+    try {
+      if (!req.session.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const content = await generateContent(req.body);
+      res.json({ 
+        success: true,
+        content 
+      });
+    } catch (error) {
+      console.error("Content generation error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : "Content generation failed" 
+      });
+    }
+  });
+
   // Mount API routes
   app.use("/api", apiRouter);
 
