@@ -119,6 +119,41 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
+  // Posts endpoints
+  apiRouter.get("/posts", async (req, res) => {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    try {
+      const posts = await db.query.scheduledPosts.findMany({
+        where: eq(scheduledPosts.userId, req.session.user.id)
+      });
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
+  apiRouter.post("/posts", async (req, res) => {
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    try {
+      const [post] = await db.insert(scheduledPosts)
+        .values({
+          ...req.body,
+          userId: req.session.user.id,
+          createdAt: new Date(),
+        })
+        .returning();
+      res.json(post);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
   // Mount API routes
   app.use("/api", apiRouter);
 
