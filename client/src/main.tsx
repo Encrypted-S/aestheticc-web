@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
+import TestAudio from "./pages/test-audio";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/login" component={Login} />
         <Route path="/dashboard" component={Dashboard} />
+        <Route path="/test-audio" component={TestAudio} />
         <Route>404 Page Not Found</Route>
       </Switch>
     </Layout>
