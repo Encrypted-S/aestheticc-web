@@ -140,10 +140,12 @@ export function registerRoutes(app: express.Express) {
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
+      const { scheduledFor, ...restBody } = req.body;
       const [post] = await db.insert(scheduledPosts)
         .values({
-          ...req.body,
+          ...restBody,
           userId: req.session.user.id,
+          scheduledFor: new Date(scheduledFor),
           createdAt: new Date(),
         })
         .returning();
