@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/auth";
+import { GoogleButton } from "@/components/ui/google-button";
+import { Separator } from "@/components/ui/separator";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -74,6 +76,19 @@ export default function Login() {
         )}
 
         <div className="space-y-6">
+          <GoogleButton />
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Input

@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
+import { setupAuth } from "./auth";
 
 const app = express();
 const server = createServer(app);
@@ -17,6 +18,10 @@ async function main() {
     // Basic middleware setup
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    // Setup authentication before routes
+    console.log("Setting up authentication...");
+    setupAuth(app);
 
     // Register API routes first, before any static/Vite middleware
     console.log("Registering API routes...");

@@ -5,6 +5,7 @@ import { db } from "../db";
 import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateContent } from "./services/openai";
+import passport from "passport";
 
 // Extend express-session types to include our user object
 declare module 'express-session' {
@@ -31,19 +32,51 @@ export function registerRoutes(app: express.Express) {
 
   // Session configuration - simplified for development
   app.use(session({
-    secret: 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: true,
+    saveUninitialized: true,
     cookie: {
-      secure: false, // Set to true in production
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   }));
 
+  // Initialize Passport middleware
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   // Create API router
   const apiRouter = express.Router();
+
+  // Google Auth Routes
+  apiRouter.get("/auth/google",
+    passport.authenticate("google", {
+      scope: ["profile", "email"]
+    })
+  );
+
+  apiRouter.get("/auth/google/callback",
+    passport.authenticate("google", {
+      failureRedirect: "/login",
+      successRedirect: "/dashboard",
+    })
+  );
+
+  // Get current auth status
+  apiRouter.get("/auth/status", (req, res) => {
+    if (req.isAuthenticated()) {
+      res.json({ 
+        isAuthenticated: true, 
+        user: req.user 
+      });
+    } else {
+      res.json({ 
+        isAuthenticated: false 
+      });
+    }
+  });
 
   // Login route - simplified for hardcoded email
   apiRouter.post("/login", (req, res) => {
