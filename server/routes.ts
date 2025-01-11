@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import session from "express-session";
 import { db } from "../db";
 import { users, scheduledPosts } from "@db/schema";
 import { eq } from "drizzle-orm";
@@ -19,45 +18,16 @@ const upload = multer({
   }
 });
 
-// Extend express-session types to include our user object
-declare module 'express-session' {
-  interface SessionData {
-    user: {
-      id: number;
-      email: string;
-      name: string;
-      isPremium: boolean;
-    };
-  }
-}
-
 export function registerRoutes(app: express.Express) {
   // Enable CORS with credentials
   app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.REPLIT_ORIGIN 
+      ? 'https://aestheticc-web.replit.app'
       : 'http://0.0.0.0:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   }));
-
-  // Session configuration
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: true,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
-
-  // Initialize Passport middleware
-  app.use(passport.initialize());
-  app.use(passport.session());
 
   // Create API router
   const apiRouter = express.Router();
@@ -91,54 +61,36 @@ export function registerRoutes(app: express.Express) {
   });
 
   // Login route - simplified for hardcoded email
-  apiRouter.post("/login", (req, res) => {
-    try {
-      const { email } = req.body;
-      console.log("Login attempt for:", email);
-
-      // Hardcoded test user
-      const testUser = {
-        id: 1,
-        email: email,
-        name: "Test User",
-        isPremium: false
-      };
-
-      // Store user in session
-      req.session.user = testUser;
-      console.log("User stored in session:", testUser);
-
+  apiRouter.post("/login", passport.authenticate('local'), (req, res) => {
+    if (req.user) {
       res.json({ 
         success: true,
-        user: testUser
+        user: req.user
       });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ error: "Internal server error" });
+    } else {
+      res.status(401).json({ error: "Authentication failed" });
     }
   });
 
   // User info route
   apiRouter.get("/user", (req, res) => {
-    if (!req.session.user) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     res.json({
       success: true,
-      user: req.session.user
+      user: req.user
     });
   });
 
   // Logout route
   apiRouter.post("/logout", (req, res) => {
-    req.session.destroy((err) => {
+    req.logout((err) => {
       if (err) {
-        console.error("Session destruction error:", err);
-        return res.status(500).json({ error: "Failed to clear session" });
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Failed to logout" });
       }
-
-      res.clearCookie('sessionId');
       res.json({ success: true });
     });
   });
@@ -146,7 +98,7 @@ export function registerRoutes(app: express.Express) {
   // Content generation endpoint
   apiRouter.post("/generate-content", async (req, res) => {
     try {
-      if (!req.session.user) {
+      if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
@@ -166,12 +118,12 @@ export function registerRoutes(app: express.Express) {
 
   // Posts endpoints
   apiRouter.get("/posts", async (req, res) => {
-    if (!req.session.user) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
       const posts = await db.query.scheduledPosts.findMany({
-        where: eq(scheduledPosts.userId, req.session.user.id)
+        where: eq(scheduledPosts.userId, req.user.id)
       });
       res.json(posts);
     } catch (error) {
@@ -181,7 +133,7 @@ export function registerRoutes(app: express.Express) {
   });
 
   apiRouter.post("/posts", async (req, res) => {
-    if (!req.session.user) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
     try {
@@ -189,7 +141,7 @@ export function registerRoutes(app: express.Express) {
       const [post] = await db.insert(scheduledPosts)
         .values({
           ...restBody,
-          userId: req.session.user.id,
+          userId: req.user.id,
           scheduledFor: new Date(scheduledFor),
           createdAt: new Date(),
         })

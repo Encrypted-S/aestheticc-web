@@ -23,9 +23,12 @@ export function setupAuth(app: Express) {
       checkPeriod: 86400000 // prune expired entries every 24h
     }),
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === 'production', // true in production
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      domain: process.env.NODE_ENV === 'production' ? '.replit.app' : undefined,
+      path: '/',
+      httpOnly: true
     }
   }));
 
