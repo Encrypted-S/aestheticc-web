@@ -27,6 +27,7 @@ const formSchema = z.object({
   contentType: z.string().min(1, "Content type is required"),
   platform: z.string().min(1, "Platform is required"),
   tone: z.string().min(1, "Tone is required"),
+  provider: z.enum(["openai", "anthropic"]).default("anthropic"),  // Added this line for anthropic provider
   additionalContext: z.string().optional(),
 });
 
@@ -58,6 +59,7 @@ export default function ContentGenerator() {
       contentType: "",
       platform: "",
       tone: "",
+      provider: "anthropic",
       additionalContext: "",
     },
   });
@@ -205,6 +207,30 @@ export default function ContentGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., Benefits of Hyaluronic Acid" {...field} />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="provider"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AI Provider</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select AI provider" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="openai">ChatGPT</SelectItem>
+                      <SelectItem value="anthropic">Claude</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Choose the AI model to generate your content
+                  </FormDescription>
                 </FormItem>
               )}
             />
