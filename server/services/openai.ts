@@ -39,7 +39,6 @@ class OpenAIProvider implements AIProvider {
 
 class AnthropicProvider implements AIProvider {
   async generateCompletion(messages: any[]): Promise<string> {
-    // Convert OpenAI message format to Anthropic format
     const systemMessage = messages.find(m => m.role === "system")?.content || "";
     const userMessage = messages.find(m => m.role === "user")?.content || "";
 
@@ -68,12 +67,22 @@ const getProvider = (provider: Provider): AIProvider => {
   }
 };
 
-// Rest of your existing helper functions remain the same
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const generateMedicalDisclaimer = (treatmentCategory: string) => {
-  // Your existing disclaimer logic
+  const disclaimers = {
+    skincare: "Individual results may vary. Consult with our skincare professionals for personalized treatment recommendations.",
+    injectables: "Results may vary. Medical procedure requiring consultation. Possible side effects may occur.",
+    laser: "Results may vary. Professional medical consultation required. Treatment may not be suitable for all skin types.",
+    antiaging: "Individual results may vary. Professional consultation required for personalized treatment plans.",
+    body: "Results may vary. Consultation required. Treatment outcomes depend on individual factors.",
+    wellness: "Results may vary. Consult with our wellness professionals for personalized recommendations.",
+  };
+
+  return disclaimers[treatmentCategory as keyof typeof disclaimers] || 
+    "Individual results may vary. Professional consultation recommended.";
 };
 
 const validateRequest = (request: ContentRequest) => {
@@ -125,7 +134,6 @@ export async function generateContent({
 
     const aiProvider = getProvider(provider);
 
-    // Your existing content type prompts and system prompt remain the same
     const contentTypePrompts = {
       educational: "Create educational content explaining the science and benefits",
       beforeAfter: "Create content highlighting treatment results and transformation journey",
@@ -134,50 +142,44 @@ export async function generateContent({
       tips: "Create practical tips and aftercare advice"
     };
 
-    const systemPrompt = `You are an expert social media manager for aesthetic clinics, specializing in ${treatmentCategory} treatments.
-Your content must be:
-- Medically accurate and compliant
-- Engaging and platform-appropriate
-- Professional while maintaining the specified tone
-- Focused on education and safety
-Always include relevant treatment benefits and safety considerations.`;
+    const systemPrompt = `You are a professional social media content creator for aesthetic clinics. You will create a post that is direct, concise, medically accurate, and engaging.
 
-    const userPrompt = `Create ${platform} content about ${topic} for an aesthetic clinic.
-Content Type: ${contentTypePrompts[contentType as keyof typeof contentTypePrompts]}
-Treatment Category: ${treatmentCategory}
+Your response must follow this exact structure:
+
+[main content]
+
+Hashtags:
+[5-7 relevant hashtags]`;
+
+    const userPrompt = `Create a ${platform} post about ${topic}.
+
+Type: ${contentTypePrompts[contentType as keyof typeof contentTypePrompts]}
+Category: ${treatmentCategory}
 Tone: ${tone}
 Additional Context: ${additionalContext}
 
-Include:
-1. Main content text
-2. Relevant hashtags
-
-Keep the content professional, compliant with medical advertising standards, and engaging.`;
+Be direct and professional. Include emojis where appropriate. Format the post exactly as shown in the system message. Begin with the main content, do not start with an introduction such as [Here is a post about...]`;
 
     console.log("Sending request to AI provider...");
 
-    // Generate main content
-    const content = await makeAIRequest(aiProvider, [
+    const rawContent = await makeAIRequest(aiProvider, [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ]);
 
-    if (!content) {
+    if (!rawContent) {
       throw new Error("AI provider returned empty content");
     }
 
-    // Generate hashtags
-    console.log("Generating hashtags...");
-    const hashtagPrompt = `Generate 5-7 relevant, trending hashtags for a ${platform} post about ${topic} in the aesthetic/beauty industry, specific to ${treatmentCategory}.`;
-    const hashtagsContent = await makeAIRequest(aiProvider, [
-      { role: "system", content: "Generate relevant hashtags for aesthetic clinic social media content." },
-      { role: "user", content: hashtagPrompt }
-    ]);
+    // Split content into main text and hashtags
+    const [mainContent, hashtagSection] = rawContent.split(/\n\nHashtags:/i);
 
-    const hashtags = hashtagsContent
+    // Extract hashtags
+    const hashtags = hashtagSection
+      ?.trim()
       .split(/[\s,]+/)
-      .filter(tag => tag.startsWith("#"))
-      .slice(0, 7);
+      .filter(tag => tag.startsWith('#'))
+      .slice(0, 7) || [];
 
     if (hashtags.length === 0) {
       throw new Error("Failed to generate hashtags");
@@ -193,7 +195,7 @@ Keep the content professional, compliant with medical advertising standards, and
     console.log("Content generation completed successfully");
 
     return {
-      mainText: content,
+      mainText: mainContent.trim(),
       hashtags,
       imagePrompt: `[${provider.toUpperCase()}] ${imagePrompt}`,
       disclaimer,

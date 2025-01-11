@@ -27,7 +27,7 @@ const formSchema = z.object({
   contentType: z.string().min(1, "Content type is required"),
   platform: z.string().min(1, "Platform is required"),
   tone: z.string().min(1, "Tone is required"),
-  provider: z.enum(["openai", "anthropic"]).default("anthropic"),  // Added this line for anthropic provider
+  provider: z.enum(["openai", "anthropic"]).default("anthropic"),
   additionalContext: z.string().optional(),
 });
 
@@ -70,13 +70,45 @@ export default function ContentGenerator() {
   const [generatedContent, setGeneratedContent] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
 
+  const formatContent = (content: any) => {
+    // Extract the content sections and ensure proper spacing
+    const mainText = content.mainText.trim();
+    const hashtags = content.hashtags.join(" ");
+    const imagePrompt = content.imagePrompt.replace(/^\[(ANTHROPIC|OPENAI)\]\s*/i, "");
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h4 className="font-semibold mb-3">Content:</h4>
+          <p className="whitespace-pre-wrap">{mainText}</p>
+        </div>
+
+        {content.disclaimer && (
+          <div>
+            <h4 className="font-semibold mb-3">Medical Disclaimer:</h4>
+            <p className="text-sm text-muted-foreground">{content.disclaimer}</p>
+          </div>
+        )}
+
+        <div>
+          <h4 className="font-semibold mb-3">Hashtags:</h4>
+          <p className="text-primary">{hashtags}</p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-3">Image Suggestion:</h4>
+          <p className="italic">{imagePrompt}</p>
+        </div>
+      </div>
+    );
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsGenerating(true);
     setIsSaved(false);
-    setPreview(null); // Clear previous preview
+    setPreview(null);
 
     try {
-      // Track content generation event
       await fetch("/api/analytics/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,29 +139,7 @@ export default function ContentGenerator() {
       }
 
       setGeneratedContent(result.content);
-
-      setPreview(
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">Content:</h4>
-            <p className="whitespace-pre-wrap">{result.content.mainText}</p>
-          </div>
-          {result.content.disclaimer && (
-            <div>
-              <h4 className="font-semibold mb-2">Medical Disclaimer:</h4>
-              <p className="text-sm text-muted-foreground">{result.content.disclaimer}</p>
-            </div>
-          )}
-          <div>
-            <h4 className="font-semibold mb-2">Hashtags:</h4>
-            <p className="text-primary">{result.content.hashtags.join(" ")}</p>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-2">Image Suggestion:</h4>
-            <p className="italic">{result.content.imagePrompt}</p>
-          </div>
-        </div>
-      );
+      setPreview(formatContent(result.content));
     } catch (error) {
       console.error("Content generation error:", error);
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
@@ -166,7 +176,7 @@ export default function ContentGenerator() {
             disclaimer: generatedContent.disclaimer
           },
           platforms: [form.getValues().platform],
-          scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to tomorrow
+          scheduledFor: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         }),
         credentials: "include",
       });
@@ -179,7 +189,6 @@ export default function ContentGenerator() {
     } catch (error) {
       console.error(error);
       setIsSaved(false);
-      // Show error state
       setPreview(prev => (
         <div>
           {prev}
@@ -198,6 +207,7 @@ export default function ContentGenerator() {
       <div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Form fields remain the same */}
             <FormField
               control={form.control}
               name="topic"
@@ -235,6 +245,8 @@ export default function ContentGenerator() {
               )}
             />
 
+            {/* Rest of your form fields remain exactly the same */}
+            {/* Just copying the remaining form fields structure */}
             <FormField
               control={form.control}
               name="treatmentCategory"
